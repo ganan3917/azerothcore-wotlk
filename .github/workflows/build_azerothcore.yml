@@ -34,14 +34,14 @@ jobs:
       - name: Set up build environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake git libmariadbclient-dev-compat libssl-dev libbz2-dev libreadline-dev libncurses-dev libboost-all-dev mariadb-server p7zip-full
-
+          sudo apt-get install -y build-essential make cmake git gcc g++ clang libmysqlclient-dev libmariadbclient-dev-compat libssl-dev libbz2-dev libreadline-dev libncurses-dev libboost-all-dev mariadb-server p7zip-full mysql-server libboost-all-dev
+      
       - name: Create build directory
         run: mkdir build
 
       - name: Configure CMake
         working-directory: build
-        run: cmake ../ -DCMAKE_INSTALL_PREFIX=$HOME/azeroth-server -DWITH_WARNINGS=1 -DSCRIPTS=static -DMODULES=static
+        run: cmake ../ -DCMAKE_INSTALL_PREFIX=$HOME/azeroth-server -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
 
       - name: Compile AzerothCore
         working-directory: build
