@@ -1,14 +1,16 @@
 name: build_azerothcore
 
 on:
-  # 手动触发，通过 GitHub 界面的 Actions 选项卡中的 "Run workflow" 按钮触发
+  # 支持手动触发工作流，并允许指定拉取的分支
   workflow_dispatch:
-  # 定时触发，每天凌晨 4 点执行
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: playerbots
+  # 支持按计划自动触发工作流，每天凌晨 3 点（UTC 时间）执行
   schedule:
-    - cron: '0 4 * * *'
-  push:
-    branches:
-      - main
+    - cron: '0 3 * * *'
 
 jobs:
   build:
