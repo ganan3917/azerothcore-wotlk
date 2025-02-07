@@ -1,4 +1,4 @@
-name: Compile Package and Release AzerothCore
+name:Build_AzerothCore
 
 on:
   push:
