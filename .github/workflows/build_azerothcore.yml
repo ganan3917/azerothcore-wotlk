@@ -1,6 +1,11 @@
 name: build_azerothcore
 
 on:
+  # 手动触发，通过 GitHub 界面的 Actions 选项卡中的 "Run workflow" 按钮触发
+  workflow_dispatch:
+  # 定时触发，每天凌晨 4 点执行
+  schedule:
+    - cron: '0 4 * * *'
   push:
     branches:
       - main
