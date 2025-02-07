@@ -1,0 +1,69 @@
+name: Compile Package and Release AzerothCore
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake git libmariadbclient-dev-compat libssl-dev libbz2-dev libreadline-dev libncurses-dev libboost-all-dev mariadb-server p7zip-full
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Configure CMake
+        working-directory: build
+        run: cmake ../ -DCMAKE_INSTALL_PREFIX=$HOME/azeroth-server -DWITH_WARNINGS=1 -DSCRIPTS=static -DMODULES=static
+
+      - name: Compile AzerothCore
+        working-directory: build
+        run: make -j $(nproc)
+
+      - name: Install AzerothCore
+        working-directory: build
+        run: make install
+
+      - name: Generate timestamped package name
+        id: package_name
+        run: |
+          TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+          echo "package_name=编译完成_${TIMESTAMP}.tar.gz" >> $GITHUB_OUTPUT
+
+      - name: Package the compiled files
+        run: |
+          cd $HOME
+          tar -czvf ${{ steps.package_name.outputs.package_name }} azeroth-server
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: $HOME/${{ steps.package_name.outputs.package_name }}
+          asset_name: ${{ steps.package_name.outputs.package_name }}
+          asset_content_type: application/gzip
