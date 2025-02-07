@@ -14,15 +14,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-     - name: Create modules directory
+      - name: Create modules directory
         run: mkdir -p modules
 
       - name: Pull specified repository to modules directory
         run: |
-          https://github.com/liyunfan1223/mod-playerbots.git modules/mod-playerbots
-          https://github.com/azerothcore/mod-eluna.git modules/mod-eluna
-          https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
-          https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
+          git clone https://github.com/liyunfan1223/mod-playerbots.git modules/mod-playerbots
+          git clone https://github.com/azerothcore/mod-eluna.git modules/mod-eluna
+          git clone https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
+          git clone https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
 
       - name: Set up build environment
         run: |
