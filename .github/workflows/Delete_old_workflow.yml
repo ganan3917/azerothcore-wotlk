@@ -1,8 +1,11 @@
 name: Delete_old_workflow
 
 on:
+  # 手动触发，通过 GitHub 界面的 Actions 选项卡中的 "Run workflow" 按钮触发
+  workflow_dispatch:
+  # 定时触发，每天凌晨 5 点执行
   schedule:
-    - cron: '0 3 * * *' # 每天凌晨 3 点执行
+    - cron: '0 5 * * *'
 
 jobs:
   delete-old-runs:
