@@ -31,7 +31,7 @@ jobs:
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
+          sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev jq
           curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
           sudo apt-get update
@@ -41,8 +41,10 @@ jobs:
       - name: Clone AzerothCore-WoTLK Repository
         run: |
           set -e
+          echo "Cloning repository ${{ github.event.inputs.repo_url }} on branch ${{ github.event.inputs.branch }}"
           git clone ${{ github.event.inputs.repo_url }} -b ${{ github.event.inputs.branch }} ${{ env.AC_DIR }}
           cd ${{ env.AC_DIR }}
+          echo "Updating submodules"
           git submodule update --init --recursive
       
       # 若提供了模块仓库地址，拉取模块到 modules 目录
@@ -91,7 +93,7 @@ jobs:
       - name: Calculate MD5
         id: md5
         run: |
-          md5=$(md5sum ./${{ env.AC_DIR }}/compiled_files.tar.gz | awk '{print $1}')
+          md5=$(md5sum ./${{ env.AC_DIR }}/build/compiled_files.tar.gz | awk '{print $1}')
           echo "::set-output name=md5::$md5"
 
       # 生成新的文件名
@@ -104,7 +106,7 @@ jobs:
       # 重命名打包文件
       - name: Rename Package
         run: |
-          mv ./${{ env.AC_DIR }}/compiled_files.tar.gz ./${{ env.AC_DIR }}/${{ steps.new_filename.outputs.name }}
+          mv ./${{ env.AC_DIR }}/build/compiled_files.tar.gz ./${{ env.AC_DIR }}/${{ steps.new_filename.outputs.name }}
 
       # 创建 Release
       - name: Create Release
