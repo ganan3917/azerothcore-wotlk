@@ -13,12 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 安装 Git 2.40.0
-      - name: Install Git 2.40.0
-        run: |
-          choco install git --version 2.40.0 -y
-          refreshenv
-
       # 安装 Boost 1.78
       - name: Install Boost 1.78
         run: |
