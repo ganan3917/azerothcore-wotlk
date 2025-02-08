@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          ref: playerbot
+          ref: Playerbot
           retry: 3
 
       # 安装 Boost 1.78
