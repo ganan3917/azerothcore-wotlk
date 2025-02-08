@@ -1,57 +1,76 @@
 name: build_azerothcore
 
 on:
-  # 支持手动触发
-  workflow_dispatch:
   push:
     branches:
       - playerbot
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-and-release:
+    runs-on: ubuntu - latest
 
     steps:
-      # 检出 AzerothCore 源代码
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # 设置 Visual Studio 环境
-      - name: Setup Visual Studio
-        uses: microsoft/setup-msbuild@v1.1
-
-      # 安装 CMake
-      - name: Install CMake
-        uses: lukka/get-cmake@latest
-
-      # 安装 Git
-      - name: Install Git
-        run: choco install -y git
-
-      # 安装 MySQL
-      - name: Install MySQL
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: playerbot
+          
+      - name: Install dependencies
         run: |
-          choco install -y mysql --version=8.0.28
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          mysqld --initialize-insecure
-          Start-Service MySQL80
-          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';"
+          sudo apt - get update
+          sudo apt - get install - y \
+            cmake \
+            g++ \
+            gcc \
+            make \
+            clang \
+            libmysqlclient-dev \
+            libssl-dev \
+            libbz2-dev \
+            libreadline-dev \
+            libncurses- dev \
+            libboost-all-dev \
+            mysql-server \
 
-      # 安装 OpenSSL
-      - name: Install OpenSSL
-        run: choco install -y openssl
-
-      # 安装 Boost
-      - name: Install Boost
-        run: |
-          choco install -y boost-msvc-14.3
-          $env:BOOST_ROOT = "C:\local\boost_1_76_0"  # 根据实际安装路径调整
-          [System.Environment]::SetEnvironmentVariable("BOOST_ROOT", $env:BOOST_ROOT, [System.EnvironmentVariableTarget]::Machine)
-
-      # 配置和编译 AzerothCore
-      - name: Configure and build AzerothCore
+      - name: Configure CMake
         run: |
           mkdir build
+          mkdir bin
           cd build
-          cmake -G "Visual Studio 16 2019" -A x64 ..
-          msbuild AzerothCore.sln /p:Configuration=Release /p:Platform=x64
+          cmake ../ -DCMAKE_INSTALL_PREFIX=./bin/ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
+
+      - name: Build AzerothCore
+        run: |
+          cd build
+          make - j$(nproc)
+
+      - name: Compress the build
+        run: |
+          cd build/bin
+          gzip -r./*.exe
+          gzip -r./*.dll
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action - github - release@v1
+        with:
+          tag_name: ${{ github.sha }}
+          release_name: AzerothCore - WoTLK - ${{ format('{0:yyyy - MM - dd}', github.sha) }}
+          body: Compiled AzerothCore - WoTLK build.
+          draft: false
+          prerelease: false
+
+      - name: Upload artifacts
+        uses: actions/upload - release - asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/bin/*.gz
+          asset_name: AzerothCore - WoTLK - ${{ format('{0:yyyy - MM - dd}', github.sha) }}.gz
+          asset_content_type: application/gzip
+
+      - name: Clean up old releases
+        uses: actions - helper/delete - releases@v12
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          keep_latest: 3
