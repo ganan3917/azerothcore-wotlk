@@ -18,9 +18,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Clone AzerothCore repository
-        uses: actions/checkout@v2
         with:
           repository: https://github.com/liyunfan1223/azerothcore-wotlk.git
           path: azerothcore
