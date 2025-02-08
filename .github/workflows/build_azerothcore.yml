@@ -78,49 +78,21 @@ jobs:
           make -j 4
           make install
 
-      # 打包编译后的文件
-      - name: Package Compiled Files
-        run: |
-          set -e
-          cd ${{ env.AC_DIR }}/build/install
-          tar -czvf ../../compiled_files.tar.gz .
-
       # 获取当前日期
       - name: Get Current Date
         id: date
         run: echo "::set-output name=date::$(date +'%Y%m%d')"
 
-      # 删除之前的 Release（如果存在）
-      - name: Delete Previous Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 打包编译后的文件，修改文件名
+      - name: Package Compiled Files
         run: |
           set -e
-          previous_release_id=$(gh api repos/${{ github.repository }}/releases | jq -r '.[0].id?')
-          if [ -n "$previous_release_id" ]; then
-            gh api --method DELETE repos/${{ github.repository }}/releases/$previous_release_id
-          fi
+          cd ${{ env.AC_DIR }}/build/install
+          tar -czvf ../../azerothcore_${{ steps.date.outputs.date }}.tar.gz .
 
-      # 创建新的 Release
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 上传编译好的文件作为 artifact
+      - name: Upload Compiled Files as Artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: compiled_files_${{ steps.date.outputs.date }}
-          release_name: Compiled AzerothCore Files - ${{ steps.date.outputs.date }}
-          body: 'Compiled AzerothCore files on ${{ steps.date.outputs.date }}'
-          draft: false
-          prerelease: false
-
-      # 上传打包文件到 Release
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.AC_DIR }}/build/compiled_files.tar.gz
-          asset_name: compiled_files_${{ steps.date.outputs.date }}.tar.gz
-          asset_content_type: application/gzip
+          name: azerothcore_${{ steps.date.outputs.date }}
+          path: ${{ env.AC_DIR }}/build/azerothcore_${{ steps.date.outputs.date }}.tar.gz
