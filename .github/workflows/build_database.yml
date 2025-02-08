@@ -14,7 +14,7 @@ on:
         default: 'Playerbot'
   # 支持自动触发，这里设置为每周六凌晨 2 点触发
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 2 * * 6'
 
 jobs:
   build:
@@ -70,23 +70,18 @@ jobs:
             mysql -u $DB_USER -p$DB_PASSWORD world < $file
           done
 
-      # 获取当前日期
-      - name: Get current date
-        id: date
-        run: echo "::set-output name=date::$(date +%Y%m%d)"
-
-      # 导出数据库并打包，文件名包含日期
+      # 导出数据库并打包
       - name: Export and compress databases
         run: |
           set -e
           mysqldump -u $DB_USER -p$DB_PASSWORD auth > auth.sql
           mysqldump -u $DB_USER -p$DB_PASSWORD characters > characters.sql
           mysqldump -u $DB_USER -p$DB_PASSWORD world > world.sql
-          tar -zcvf database-${{ steps.date.outputs.date }}.sql.gz auth.sql characters.sql world.sql
+          tar -zcvf database.sql.gz auth.sql characters.sql world.sql
 
       # 上传打包好的数据库文件作为工作流的制品
       - name: Upload database artifact
         uses: actions/upload-artifact@v3
         with:
-          name: database-backup-${{ steps.date.outputs.date }}
-          path: database-${{ steps.date.outputs.date }}.sql.gz
+          name: database-backup
+          path: database.sql.gz
