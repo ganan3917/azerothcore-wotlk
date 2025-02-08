@@ -14,8 +14,8 @@ jobs:
       # 克隆指定仓库到 c:\azerothcore 目录
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          path: c:\azerothcore
+        # with:
+          # path: c:\azerothcore
 
       # 安装 MySQL 8 数据库
       - name: Install MySQL 8
