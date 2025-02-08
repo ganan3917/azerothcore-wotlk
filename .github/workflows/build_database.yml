@@ -15,12 +15,10 @@ on:
 jobs:
   setup-database:
     runs-on: ubuntu-22.04
+    
     steps:
-      - name: Checkout Repository
+      - name: Checkout out
         uses: actions/checkout@v3
-        with:
-          repository: https://github.com/ganan3917/azerothcore-wotlk.git
-          ref: playerbot
 
       - name: Install MySQL 8
         run: |
