@@ -13,9 +13,9 @@ on:
         required: true
         default: 'Playerbot'
       module_repo_url:
-        description: 'https://github.com/ganan3917/mod-playerbots.git'
+        description: '编译模块仓库地址'
         required: false
-        default: ''
+        default: 'https://github.com/ganan3917/mod-playerbots.git'
       module_branch:
         description: 'master'
         required: false
