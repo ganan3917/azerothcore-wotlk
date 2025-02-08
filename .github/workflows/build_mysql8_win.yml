@@ -1,12 +1,7 @@
-name: build_mysql8_win
+name: Manual Install MySQL 8.2 on Windows
 
 on:
   workflow_dispatch:
-    inputs:
-      mysql-root-password:
-        description: 'MySQL root password'
-        required: true
-        default: '123456'
 
 jobs:
   install-mysql:
@@ -16,27 +11,62 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Download MySQL Installer
+      - name: Download MySQL 8.2 ZIP Archive
         shell: powershell
         run: |
-          $mysqlInstallerUrl = "https://dev.mysql.com/get/Downloads/MySQLInstaller/mysql-installer-community-8.0.33.0.msi"
-          $mysqlInstallerPath = "$env:TEMP\mysql-installer.msi"
-          Invoke-WebRequest -Uri $mysqlInstallerUrl -OutFile $mysqlInstallerPath
+          $mysqlDownloadUrl = "https://dev.mysql.com/get/Downloads/MySQL-8.2/mysql-8.2.0-winx64.zip"
+          $downloadPath = "$env:TEMP\mysql-8.2.0-winx64.zip"
+          Invoke-WebRequest -Uri $mysqlDownloadUrl -OutFile $downloadPath
 
-      - name: Install MySQL
+      - name: Extract MySQL ZIP Archive
         shell: powershell
         run: |
-          $arguments = "/i", "$env:TEMP\mysql-installer.msi", "/qn", "INSTALLDIR=C:\Program Files\MySQL\MySQL Server 8.0", "SERVICENAME=MySQL80", "ROOTPASSWORD=${{ github.event.inputs.mysql-root-password }}"
-          Start-Process -FilePath "msiexec.exe" -ArgumentList $arguments -Wait
+          $extractPath = "C:\mysql-8.2.0"
+          Expand-Archive -Path "$env:TEMP\mysql-8.2.0-winx64.zip" -DestinationPath "C:\"
+          Rename-Item -Path "C:\mysql-8.2.0-winx64" -NewName $extractPath
+
+      - name: Create my.ini Configuration File
+        shell: powershell
+        run: |
+          $configContent = @"
+          [mysqld]
+          basedir = C:\mysql-8.2.0
+          datadir = C:\mysql-8.2.0\data
+          port = 3306
+          character-set-server = utf8mb4
+          collation-server = utf8mb4_unicode_ci
+          [mysql]
+          default-character-set = utf8mb4
+          "@
+          $configContent | Out-File -FilePath "C:\mysql-8.2.0\my.ini" -Encoding UTF8
+
+      - name: Initialize MySQL Data Directory
+        shell: powershell
+        run: |
+          $mysqlBinPath = "C:\mysql-8.2.0\bin"
+          & "$mysqlBinPath\mysqld.exe" --initialize-insecure --console
+
+      - name: Install MySQL Service
+        shell: powershell
+        run: |
+          $mysqlBinPath = "C:\mysql-8.2.0\bin"
+          & "$mysqlBinPath\mysqld.exe" --install MySQL82
 
       - name: Start MySQL Service
         shell: powershell
         run: |
-          Start-Service -Name MySQL80
+          Start-Service -Name MySQL82
+
+      - name: Set Root Password
+        shell: powershell
+        run: |
+          $mysqlBinPath = "C:\mysql-8.2.0\bin"
+          $command = "$mysqlBinPath\mysql.exe -u root --execute=\"ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';\""
+          Invoke-Expression $command
 
       - name: Test MySQL Connection
         shell: powershell
         run: |
-          $mysqlPath = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
-          $command = "$mysqlPath -u root -p${{ github.event.inputs.mysql-root-password }} -e 'SHOW DATABASES;'"
+          $mysqlBinPath = "C:\mysql-8.2.0\bin"
+          $command = "$mysqlBinPath\mysql.exe -u root -p123456 -e 'SHOW DATABASES;'"
           Invoke-Expression $command
