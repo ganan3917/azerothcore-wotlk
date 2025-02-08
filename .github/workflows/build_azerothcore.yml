@@ -31,6 +31,20 @@ jobs:
           git clone https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
           git clone https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
 
+      - name: Cache dependencies and build artifacts
+        id: cache-azerothcore
+        uses: actions/cache@v3
+        with:
+          # 指定要缓存的路径
+          path: |
+            # 缓存依赖安装目录
+            /opt/azerothcore/deps
+            # 缓存构建目录
+            /opt/azerothcore/build
+          key: ${{ runner.os }}-azerothcore-${{ hashFiles('CMakeLists.txt', 'deps/**') }}
+          restore-keys: |
+            ${{ runner.os }}-azerothcore-
+      
       - name: Set up build environment
         run: |
           sudo apt-get update
@@ -59,7 +73,7 @@ jobs:
 
       - name: Package the compiled files
         run: |
-          cd $HOME
+          cd $HOME/azeroth-server
           tar -czvf ${{ steps.package_name.outputs.package_name }} azeroth-server
 
       - name: Create Release
@@ -80,6 +94,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: $HOME/${{ steps.package_name.outputs.package_name }}
+          asset_path: ${{ steps.package_name.outputs.package_name }}
           asset_name: ${{ steps.package_name.outputs.package_name }}
           asset_content_type: application/gzip
