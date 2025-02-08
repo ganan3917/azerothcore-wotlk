@@ -65,7 +65,7 @@ jobs:
       # 获取当前日期
       - name: Get Current Date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y%m%d')"
+        run: echo "::set-output name=date::$(date +'%Y%m%d%h%m%s')"
 
       # 创建 Release
       - name: Create Release
