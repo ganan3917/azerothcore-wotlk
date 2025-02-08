@@ -74,24 +74,26 @@ jobs:
         run: |
           mkdir /database
           DATE=$(date +%Y%m%d)
-          mysqldump -u root -proot auth > /database/world.sql
-          mysqldump -u root -proot characters > /database/auth.sql
-          mysqldump -u root -proot world > /database/characters.sql
-          gzip database.sql
-          mv database.sql.gz database-$DATE.sql.gz
+          mysqldump -u root -proot auth > /database/auth.sql
+          mysqldump -u root -proot characters > /database/characters.sql
+          mysqldump -u root -proot world > /database/world.sql
+          cd /database
+          tar -zcvf database-$DATE.sql.gz auth.sql characters.sql world.sql
 
       # 计算文件的 MD5 值
       - name: Calculate MD5
         id: calculate_md5
         run: |
-          MD5=$(md5sum database-$DATE.sql.gz | awk '{print $1}')
+          DATE=$(date +%Y%m%d)
+          MD5=$(md5sum /database/database-$DATE.sql.gz | awk '{print $1}')
           echo "MD5=$MD5" >> $GITHUB_OUTPUT
 
       # 重命名文件
       - name: Rename file
         run: |
-          NEW_NAME="database_${{ steps.calculate_md5.outputs.MD5 }}_${{ env.DATE }}.sql.gz"
-          mv database-$DATE.sql.gz $NEW_NAME
+          DATE=$(date +%Y%m%d)
+          NEW_NAME="database_${{ steps.calculate_md5.outputs.MD5 }}_${DATE}.sql.gz"
+          mv /database/database-$DATE.sql.gz $NEW_NAME
 
       # 创建或更新 Release
       - name: Create or update Release
@@ -101,7 +103,7 @@ jobs:
           tag_name: ${{ github.run_number }}
           name: Release ${{ github.run_number }}
           body: "Database backup for AzerothCore-WoTLK"
-          files: database_*.sql.gz
+          files: /database/database_*.sql.gz
           draft: false
           prerelease: false
 
