@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          repository: <ganan3917/azerothcore-wotlk>
+          repository: ganan3917/azerothcore-wotlk
           ref: playerbot
 
       - name: Install dependencies
