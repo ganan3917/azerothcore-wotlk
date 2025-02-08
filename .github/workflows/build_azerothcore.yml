@@ -3,94 +3,55 @@ name: build_azerothcore
 on:
   # 支持手动触发
   workflow_dispatch:
+  push:
+    branches:
+      - playerbot
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
-      # 检出代码
-      - name: Checkout code
+      # 检出 AzerothCore 源代码
+      - name: Checkout repository
         uses: actions/checkout@v3
-        
-      - name: Install C++ libraries
-        run: |
-          choco install -y boost-msvc-14.3 cmake ninja openssl
-          
-      # 安装 Boost 1.78
-      - name: Install Boost 1.78
-        run: |
-            choco install -y \
-            boost-msvc-14.3 \
-            openssl \
-            cmake \
-            ninja
 
-      # 安装 MySQL Server 8.0（注意：目前 MySQL Server 最新稳定版为 8.0，没有 8.4 版本）
-      - name: Install MySQL Server 8.0
-        run: |
-          choco install mysql --version 8.0.28 -y
-          refreshenv
+      # 设置 Visual Studio 环境
+      - name: Setup Visual Studio
+        uses: microsoft/setup-msbuild@v1.1
 
-      # 安装 OpenSSL 3.0（注意：目前 OpenSSL 没有 3.32 版本，最新稳定版为 3.x 系列，这里以 3.0 为例）
-      - name: Install OpenSSL 3.0
-        run: |
-          choco install openssl --version 3.0.7 -y
-          refreshenv
+      # 安装 CMake
+      - name: Install CMake
+        uses: lukka/get-cmake@latest
 
-      # 安装 CMake 3.31.5
-      - name: Install CMake 3.31.5
-        run: |
-          choco install cmake --version 3.31.5 -y
-          refreshenv
+      # 安装 Git
+      - name: Install Git
+        run: choco install -y git
 
-      # 拉取指定仓库的 Playerbot 分支
-      - name: Clone repository with Playerbot branch
+      # 安装 MySQL
+      - name: Install MySQL
         run: |
-          git clone -b Playerbot https://github.com/ganan3917/azerothcore-wotlk.git
+          choco install -y mysql --version=8.0.28
+          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+          mysqld --initialize-insecure
+          Start-Service MySQL80
+          mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';"
 
-      # 配置和编译项目
-      - name: Configure and build project
+      # 安装 OpenSSL
+      - name: Install OpenSSL
+        run: choco install -y openssl
+
+      # 安装 Boost
+      - name: Install Boost
         run: |
-          cd azerothcore-wotlk
+          choco install -y boost-msvc-14.3
+          $env:BOOST_ROOT = "C:\local\boost_1_76_0"  # 根据实际安装路径调整
+          [System.Environment]::SetEnvironmentVariable("BOOST_ROOT", $env:BOOST_ROOT, [System.EnvironmentVariableTarget]::Machine)
+
+      # 配置和编译 AzerothCore
+      - name: Configure and build AzerothCore
+        run: |
           mkdir build
           cd build
-          cmake ..
-          cmake --build .
-
-      # 打包编译结果
-      - name: Package build result
-        run: |
-          cd azerothcore-wotlk/build
-          7z a -tzip ../build_$(Get-Date -Format "yyyyMMdd").zip .
-
-      # 创建 Releases 并上传
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.run_number }}_$(Get-Date -Format "yyyyMMdd")
-          release_name: Release ${{ github.run_number }}_$(Get-Date -Format "yyyyMMdd")
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: azerothcore-wotlk/build_$(Get-Date -Format "yyyyMMdd").zip
-          asset_name: build_$(Get-Date -Format "yyyyMMdd").zip
-          asset_content_type: application/zip
-
-      # 保留最新的 3 份 Releases
-      - name: Delete old releases
-        uses: dev-drprasad/delete-older-releases@v0.2.0
-        with:
-          keep_latest: 3
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          cmake -G "Visual Studio 16 2019" -A x64 ..
+          msbuild AzerothCore.sln /p:Configuration=Release /p:Platform=x64
