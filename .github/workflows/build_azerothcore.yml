@@ -73,7 +73,7 @@ jobs:
 
       - name: Package the compiled files
         run: |
-          cd $HOME/azeroth-server
+          cd  /home/runner/azeroth-server
           tar -czvf ${{ steps.package_name.outputs.package_name }} azeroth-server
 
       - name: Create Release
