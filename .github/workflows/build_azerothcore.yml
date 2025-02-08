@@ -1,4 +1,4 @@
-name: Build and Release
+name: build_azerothcore
 
 on:
   # 支持手动触发
