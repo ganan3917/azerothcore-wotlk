@@ -19,7 +19,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
+    env:
+      DB_USER: root
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      REPO_URL: ${{ github.event.inputs.repo || 'https://github.com/azerothcore/azerothcore-wotlk.git' }}
+      BRANCH_NAME: ${{ github.event.inputs.branch || 'master' }}
     steps:
       # 检出代码
       - name: Checkout
@@ -28,15 +32,17 @@ jobs:
       # 安装编译所需的依赖组件
       - name: Install Dependencies
         run: |
+          set -e
           curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y gh
-          
+
       # 拉取指定的 AzerothCore 仓库及分支
       - name: Clone AzerothCore
         run: |
-          git clone ${{ github.event.inputs.repo || 'https://github.com/azerothcore/azerothcore-wotlk.git' }} -b ${{ github.event.inputs.branch || 'master' }} azerothcore-wotlk
+          set -e
+          git clone $REPO_URL -b $BRANCH_NAME azerothcore-wotlk
 
       # 启动 MySQL 服务
       - name: Start MySQL service
@@ -45,38 +51,44 @@ jobs:
       # 创建数据库
       - name: Create databases
         run: |
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          set -e
+          mysql -u $DB_USER -p$DB_PASSWORD -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u $DB_USER -p$DB_PASSWORD -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u $DB_USER -p$DB_PASSWORD -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
       # 导入基础 SQL 文件
       - name: Import base SQL files
         run: |
+          set -e
           for file in azerothcore-wotlk/data/sql/base/db_auth/*.sql; do
-            mysql -u root -proot auth < $file
+            mysql -u $DB_USER -p$DB_PASSWORD auth < $file
           done
           for file in azerothcore-wotlk/data/sql/base/db_characters/*.sql; do
-            mysql -u root -proot characters < $file
+            mysql -u $DB_USER -p$DB_PASSWORD characters < $file
           done
           for file in azerothcore-wotlk/data/sql/base/db_world/*.sql; do
-            mysql -u root -proot world < $file
-          done
-
-      # 导入更新 SQL 文件
-      - name: Import update SQL files
-        run: |
-          for file in azerothcore-wotlk/data/sql/updates/db_world/*.sql; do
-            mysql -u root -proot world < $file --force
+            mysql -u $DB_USER -p$DB_PASSWORD world < $file
           done
 
       # 导出数据库并打包
       - name: Export and compress databases
         run: |
+          set -e
           DATE=$(date +%Y%m%d)
-          mysqldump -u root -proot auth > auth.sql
-          mysqldump -u root -proot characters > characters.sql
-          mysqldump -u root -proot world > world.sql
+          mysqldump -u $DB_USER -p$DB_PASSWORD auth > auth.sql
+          mysqldump -u $DB_USER -p$DB_PASSWORD characters > characters.sql
+          mysqldump -u $DB_USER -p$DB_PASSWORD world > world.sql
           tar -zcvf database-$DATE.sql.gz auth.sql characters.sql world.sql
+
+      # 清理所有旧的 Releases
+      - name: Clean up all old Releases
+        run: |
+          RELEASES=$(gh release list | awk '{print $1}')
+          for release in $RELEASES; do
+            gh release delete $release --yes
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # 创建或更新 Release
       - name: Create or update Release
@@ -89,13 +101,3 @@ jobs:
           files: database-*.sql.gz
           draft: false
           prerelease: false
-
-      # 清理旧的 Releases，只保留最新的 1 份
-      - name: Clean up old Releases
-        run: |
-          RELEASES=$(gh release list --limit 100 | awk '{print $1}' | tail -n +2)
-          for release in $RELEASES; do
-            gh release delete $release --yes
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
