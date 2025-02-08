@@ -7,7 +7,7 @@ on:
     - cron: '0 2 * * *'
 jobs:
   download-and-extract:
-    runs-on: ubuntu - latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Download File
         run: wget -O dbimport.tar.gz https://github.com/ganan3917/azerothcore-wotlk/archive/refs/tags/dbimport.zip
