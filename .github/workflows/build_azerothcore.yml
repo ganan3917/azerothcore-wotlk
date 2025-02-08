@@ -1,93 +1,91 @@
-name: build_azerothcore
+name: Build and Release
 
 on:
-  # 支持手动触发工作流
+  # 支持手动触发
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
-      - name: Install Git
-        run: |
-          choco install git --version=2.40.0 -y
-          
-      # 安装 Boost 1.78
-      - name: Install Boost 1.78
-        run: |
-          choco install boost-msvc-14.3 --version=1.78.0 -y
-          echo "BOOST_ROOT=C:\local\boost_1_78_0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      # 安装 MySQL Server 8.4
-      - name: Install MySQL Server 8.4
-        run: |
-          choco install mysql --version=8.0.34 -y  # Chocolatey 可能没有 8.4 版本，这里用相近的 8.0.34 示例
-          echo "MYSQL_DIR=C:\Program Files\MySQL\MySQL Server 8.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      # 安装 OpenSSL 3.32
-      - name: Install OpenSSL 3.32
-        run: |
-          choco install openssl --version=3.0.8 -y  # Chocolatey 可能没有 3.32 版本，这里用 3.0.8 示例
-          echo "OPENSSL_ROOT_DIR=C:\Program Files\OpenSSL-Win64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      # 安装 CMake 3.31.5
-      - name: Install CMake 3.31.5
-        run: |
-          choco install cmake --version=3.31.5 -y --installargs 'ADD_CMAKE_TO_PATH=System'
-    
     steps:
       # 检出代码
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          ref: Playerbot
-          retry: 3
-          
-      # 配置和编译项目
-      - name: Configure project
+
+      # 安装 Git 2.40.0
+      - name: Install Git 2.40.0
         run: |
+          choco install git --version 2.40.0 -y
+          refreshenv
+
+      # 安装 Boost 1.78
+      - name: Install Boost 1.78
+        run: |
+          choco install boost-msvc-14.3 --version 1.78.0 -y
+          refreshenv
+
+      # 安装 MySQL Server 8.0（注意：目前 MySQL Server 最新稳定版为 8.0，没有 8.4 版本）
+      - name: Install MySQL Server 8.0
+        run: |
+          choco install mysql --version 8.0.28 -y
+          refreshenv
+
+      # 安装 OpenSSL 3.0（注意：目前 OpenSSL 没有 3.32 版本，最新稳定版为 3.x 系列，这里以 3.0 为例）
+      - name: Install OpenSSL 3.0
+        run: |
+          choco install openssl --version 3.0.7 -y
+          refreshenv
+
+      # 安装 CMake 3.31.5
+      - name: Install CMake 3.31.5
+        run: |
+          choco install cmake --version 3.31.5 -y
+          refreshenv
+
+      # 拉取指定仓库的 Playerbot 分支
+      - name: Clone repository with Playerbot branch
+        run: |
+          git clone -b Playerbot https://github.com/ganan3917/azerothcore-wotlk.git
+
+      # 配置和编译项目
+      - name: Configure and build project
+        run: |
+          cd azerothcore-wotlk
           mkdir build
           cd build
-          cmake .. -G "Visual Studio 17 2022"
-
-      - name: Build project
-        run: |
-          cd build
-          cmake --build . --config Release
+          cmake ..
+          cmake --build .
 
       # 打包编译结果
-      - name: Package build output
+      - name: Package build result
         run: |
-          $date = Get-Date -Format "yyyyMMdd"
-          Compress-Archive -Path build\Release\* -DestinationPath playerbot-$date.zip
+          cd azerothcore-wotlk/build
+          7z a -tzip ../build_$(Get-Date -Format "yyyyMMdd").zip .
 
-      # 创建 Release 并上传
+      # 创建 Releases 并上传
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ format('v{0}-{1:yyyyMMdd}', github.run_number, github.event.created_at) }}
-          release_name: Playerbot Build ${{ format('{0}-{1:yyyyMMdd}', github.run_number, github.event.created_at) }}
-          body: |
-            Playerbot build for ${{ github.sha }}
-            Date: ${{ format('{0:yyyy-MM-dd}', github.event.created_at) }}
+          tag_name: ${{ github.run_number }}_$(Get-Date -Format "yyyyMMdd")
+          release_name: Release ${{ github.run_number }}_$(Get-Date -Format "yyyyMMdd")
           draft: false
           prerelease: false
 
       - name: Upload Release Asset
-        id: upload-release-asset
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./playerbot-${{ format('{0:yyyyMMdd}', github.event.created_at) }}.zip
-          asset_name: playerbot-${{ format('{0:yyyyMMdd}', github.event.created_at) }}.zip
+          asset_path: azerothcore-wotlk/build_$(Get-Date -Format "yyyyMMdd").zip
+          asset_name: build_$(Get-Date -Format "yyyyMMdd").zip
           asset_content_type: application/zip
 
-      # 保留最新的 3 份 Release
+      # 保留最新的 3 份 Releases
       - name: Delete old releases
         uses: dev-drprasad/delete-older-releases@v0.2.0
         with:
