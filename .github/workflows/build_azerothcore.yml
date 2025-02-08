@@ -15,7 +15,7 @@ jobs:
         with:
           ref: playerbot
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-           retry: 3  # 重试 3 次
+          retry: 3
           
       # 安装 Boost 1.78
       - name: Install Boost 1.78
