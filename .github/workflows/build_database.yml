@@ -14,7 +14,7 @@ on:
         default: 'Playerbot'
   # 支持自动触发，这里设置为每周六凌晨 2 点触发
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 2 * * 6'
 
 jobs:
   build:
@@ -32,7 +32,7 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y gh
-          
+
       # 拉取指定的 AzerothCore 仓库及分支
       - name: Clone AzerothCore
         run: |
@@ -42,56 +42,47 @@ jobs:
       - name: Start MySQL service
         run: sudo systemctl start mysql.service
 
+      # 修改 MySQL root 用户密码
+      - name: Change MySQL root password
+        run: |
+          mysql -u root -proot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'ede8fb5a0c';"
+          mysql -u root -proot -e "FLUSH PRIVILEGES;"
+
       # 创建数据库
       - name: Create databases
         run: |
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u root -pede8fb5a0c -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u root -pede8fb5a0c -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u root -pede8fb5a0c -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
       # 导入基础 SQL 文件
       - name: Import base SQL files
         run: |
           for file in azerothcore-wotlk/data/sql/base/db_auth/*.sql; do
-            mysql -u root -proot auth < $file
+            mysql -u root -pede8fb5a0c auth < $file
           done
           for file in azerothcore-wotlk/data/sql/base/db_characters/*.sql; do
-            mysql -u root -proot characters < $file
+            mysql -u root -pede8fb5a0c characters < $file
           done
           for file in azerothcore-wotlk/data/sql/base/db_world/*.sql; do
-            mysql -u root -proot world < $file
+            mysql -u root -pede8fb5a0c world < $file
           done
 
       # 导入更新 SQL 文件
       - name: Import update SQL files
         run: |
           for file in azerothcore-wotlk/data/sql/updates/db_world/*.sql; do
-            mysql -u root -proot world < $file --force
+            mysql -u root -pede8fb5a0c world < $file --force
           done
 
       # 导出数据库并打包
       - name: Export and compress databases
         run: |
           DATE=$(date +%Y%m%d)
-          mysqldump -u root -proot auth > auth.sql
-          mysqldump -u root -proot characters > characters.sql
-          mysqldump -u root -proot world > world.sql
+          mysqldump -u root -pede8fb5a0c auth > auth.sql
+          mysqldump -u root -pede8fb5a0c characters > characters.sql
+          mysqldump -u root -pede8fb5a0c world > world.sql
           tar -zcvf database-$DATE.sql.gz auth.sql characters.sql world.sql
-
-      # 计算文件的 MD5 值
-      - name: Calculate MD5
-        id: calculate_md5
-        run: |
-          DATE=$(date +%Y%m%d)
-          MD5=$(md5sum /database/database-$DATE.sql.gz | awk '{print $1}')
-          echo "MD5=$MD5" >> $GITHUB_OUTPUT
-
-      # 重命名文件
-      - name: Rename file
-        run: |
-          DATE=$(date +%Y%m%d)
-          NEW_NAME="database_${{ steps.calculate_md5.outputs.MD5 }}_${DATE}.sql.gz"
-          mv /database/database-$DATE.sql.gz $NEW_NAME
 
       # 创建或更新 Release
       - name: Create or update Release
@@ -101,14 +92,14 @@ jobs:
           tag_name: ${{ github.run_number }}
           name: Release ${{ github.run_number }}
           body: "Database backup for AzerothCore-WoTLK"
-          files: /database/database_*.sql.gz
+          files: database-*.sql.gz
           draft: false
           prerelease: false
 
-      # 清理旧的 Releases，只保留最新的 3 份
+      # 清理旧的 Releases，只保留最新的 1 份
       - name: Clean up old Releases
         run: |
-          RELEASES=$(gh release list --limit 100 | awk '{print $1}' | tail -n +4)
+          RELEASES=$(gh release list --limit 100 | awk '{print $1}' | tail -n +2)
           for release in $RELEASES; do
             gh release delete $release --yes
           done
