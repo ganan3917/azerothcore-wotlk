@@ -18,7 +18,7 @@ on:
 
 jobs:
   build-and-package:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       # 安装编译所需的依赖组件
       - name: Install Dependencies
