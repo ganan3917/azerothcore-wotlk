@@ -12,71 +12,57 @@ on:
   schedule:
     - cron: '0 3 * * *'
 
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          
-      - name: Create modules directory
-        run: mkdir -p modules
-
-      - name: Pull specified repository to modules directory
+      - name: Install dependencies
         run: |
-          git clone https://github.com/liyunfan1223/mod-playerbots.git modules/mod-playerbots
-          git clone https://github.com/azerothcore/mod-eluna.git modules/mod-eluna
-          git clone https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
-          git clone https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
-      - name: Set up build environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake git libmariadbclient-dev-compat libssl-dev libbz2-dev libreadline-dev libncurses-dev libboost-all-dev mariadb-server p7zip-full
-      - name: Create build directory
-        run: mkdir build
-
+          sudo apt - get update
+          sudo apt - get install - y \
+            cmake \
+            g++ \
+            gcc \
+            make \
+            clang \
+            libmysqlclient-dev \
+            libssl-dev \
+            libbz2-dev \
+            libreadline-dev \
+            libncurses- dev \
+            libboost-all-dev \
+            mysql-server \
       - name: Configure CMake
-        working-directory: build
-        run: cmake ../ -DCMAKE_INSTALL_PREFIX=./bin/ -DWITH_WARNINGS=1 -DSCRIPTS=static -DMODULES=static
-
-      - name: Compile AzerothCore
-        working-directory: build
-        run: make -j $(nproc)
-
-      - name: Install AzerothCore
-        working-directory: build
-        run: make install
-
-      - name: Generate timestamped package name
-        id: package_name
         run: |
-          TIMESTAMP=$(date +"%Y%m%d%H%M%S")
-          echo "package_name=azerothcore_${TIMESTAMP}.tar.gz" >> $GITHUB_OUTPUT
-      - name: Package the compiled files
+          mkdir build
+          mkdir bin
+          cd build
+          cmake ../ -DCMAKE_INSTALL_PREFIX=./bin/ -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
+      - name: Build AzerothCore
         run: |
-          cd /build/bin
-          tar -czvf ${{ steps.package_name.outputs.package_name }} azeroth-server
+          cd build
+          make - j$(nproc)
+      - name: Compress the build
+        run: |
+          cd build/bin
+          gzip -r./*.exe
+          gzip -r./*.dll
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action - github - release@v1
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
+          tag_name: ${{ github.sha }}
+          release_name: AzerothCore - WoTLK - ${{ format('{0:yyyy - MM - dd}', github.sha) }}
+          body: Compiled AzerothCore - WoTLK build.
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifacts
+        uses: actions/upload - release - asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.package_name.outputs.package_name }}
-          asset_name: ${{ steps.package_name.outputs.package_name }}
+          asset_path: build/bin/*.gz
+          asset_name: AzerothCore - WoTLK - ${{ format('{0:yyyy - MM - dd}', github.sha) }}.gz
           asset_content_type: application/gzip
+
+      - name: Clean up old releases
+        uses: actions - helper/delete - releases@v12
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          keep_latest: 3
