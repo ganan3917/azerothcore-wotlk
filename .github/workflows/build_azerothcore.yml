@@ -7,11 +7,11 @@ on:
       repo_url:
         description: 'AzerothCore-WoTLK 仓库地址'
         required: true
-        default: 'https://github.com/azerothcore/azerothcore-wotlk.git'
+        default: 'https://github.com/ganan3917/azerothcore-wotlk.git'
       branch:
         description: '要编译的分支'
         required: true
-        default: 'master'
+        default: 'Playerbot'
       module_repo_url:
         description: '模块仓库地址（可选）'
         required: false
@@ -32,7 +32,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake git libmariadb-dev-compat libmariadb-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev libboost-all-dev p7zip-full
+          sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
 
       # 克隆 AzerothCore-WoTLK 仓库
       - name: Clone AzerothCore-WoTLK Repository
