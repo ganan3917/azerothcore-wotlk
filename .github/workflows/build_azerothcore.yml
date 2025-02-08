@@ -18,7 +18,7 @@ on:
         default: 'https://github.com/ganan3917/mod-playerbots.git https://github.com/azerothcore/mod-learn-spells.git https://github.com/azerothcore/mod-autobalance.git https://github.com/azerothcore/mod-eluna.git'
   # 每天凌晨 5 点自动触发
   schedule:
-     - cron: '0 5 * * *'
+    - cron: '0 5 * * *'
 
 jobs:
   build-and-package:
@@ -36,7 +36,7 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y gh
-          
+
       # 克隆 AzerothCore-WoTLK 仓库
       - name: Clone AzerothCore-WoTLK Repository
         run: |
@@ -46,9 +46,9 @@ jobs:
           cd ${{ env.AC_DIR }}
           echo "Updating submodules"
           git submodule update --init --recursive
-      
+
       # 若提供了模块仓库地址，拉取模块到 modules 目录
-      - name: Clone Module Repository 
+      - name: Clone Module Repository
         run: |
           set -e
           mkdir -p ${{ env.AC_DIR }}/modules
@@ -56,7 +56,7 @@ jobs:
           for repo in ${{ github.event.inputs.module_repos }}; do
             git clone $repo
           done
-      
+
       # 创建构建目录
       - name: Create Build Directory
         run: |
@@ -69,7 +69,7 @@ jobs:
           set -e
           cd ${{ env.AC_DIR }}/build
           cmake .. -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
-      
+
       # 编译项目
       - name: Compile Project
         run: |
@@ -83,30 +83,11 @@ jobs:
           set -e
           cd ${{ env.AC_DIR }}/build/install
           tar -czvf ../../compiled_files.tar.gz .
-      
+
       # 获取当前日期
       - name: Get Current Date
         id: date
         run: echo "::set-output name=date::$(date +'%Y%m%d')"
-
-      # 计算打包文件的 MD5 值
-      - name: Calculate MD5
-        id: md5
-        run: |
-          md5=$(md5sum ./${{ env.AC_DIR }}/build/compiled_files.tar.gz | awk '{print $1}')
-          echo "::set-output name=md5::$md5"
-
-      # 生成新的文件名
-      - name: Generate New Filename
-        id: new_filename
-        run: |
-          new_name="azerothcore_Linux_${{ steps.date.outputs.date }}_${{ steps.md5.outputs.md5 }}.tar.gz"
-          echo "::set-output name=name::$new_name"
-
-      # 重命名打包文件
-      - name: Rename Package
-        run: |
-          mv ./${{ env.AC_DIR }}/build/compiled_files.tar.gz ./${{ env.AC_DIR }}/${{ steps.new_filename.outputs.name }}
 
       # 创建 Release
       - name: Create Release
@@ -115,9 +96,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.new_filename.outputs.name }}
-          release_name: ${{ steps.new_filename.outputs.name }}
-          body: '${{ steps.new_filename.outputs.name }}'
+          tag_name: compiled_files_${{ steps.date.outputs.date }}
+          release_name: Compiled AzerothCore Files - ${{ steps.date.outputs.date }}
+          body: 'Compiled AzerothCore files on ${{ steps.date.outputs.date }}'
           draft: false
           prerelease: false
 
@@ -128,20 +109,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ env.AC_DIR }}/${{ steps.new_filename.outputs.name }}
-          asset_name: ${{ steps.new_filename.outputs.name }}
+          asset_path: ./${{ env.AC_DIR }}/build/compiled_files.tar.gz
+          asset_name: compiled_files.tar.gz
           asset_content_type: application/gzip
 
-      # 清理旧的 Release，仅保留最近 3 个
+      # 清理旧的 Release，只保留一个
       - name: Clean Up Old Releases
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          gh api repos/${{ github.repository }}/releases \
-            | jq -r '.[].id' \
-            | sort -rn \
-            | tail -n +4 \
-            | while read -r id; do
-                gh api --method DELETE repos/${{ github.repository }}/releases/$id
-              done
+          latest_release_id=$(gh api repos/${{ github.repository }}/releases | jq -r 'sort_by(.created_at) | last.id')
+          old_release_ids=$(gh api repos/${{ github.repository }}/releases | jq -r '.[].id | select(. != '"$latest_release_id"')')
+          for id in $old_release_ids; do
+            gh api --method DELETE repos/${{ github.repository }}/releases/$id
+          done
