@@ -1,89 +1,76 @@
-name: build_azerothcore
+name: Compile Playerbot
 
 on:
-  # 支持手动触发工作流，并允许指定拉取的分支
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to checkout'
-        required: false
-        default: playerbot
-  # 支持按计划自动触发工作流，每天凌晨 3 点（UTC 时间）执行
-  schedule:
-    - cron: '0 3 * * *'
+  workflow_dispatch: 
+  push:
+    branches:
+      - playerbot
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: windows-latest
 
     steps:
+      # 检出代码
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          submodules: recursive
-      - name: Create modules directory
-        run: mkdir -p modules
+          ref: playerbot
 
-      - name: Pull specified repository to modules directory
+      # 安装依赖
+      - name: Install Boost 1.78
         run: |
-          git clone https://github.com/liyunfan1223/mod-playerbots.git modules/mod-playerbots
-          git clone https://github.com/azerothcore/mod-eluna.git modules/mod-eluna
-          git clone https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
-          git clone https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
+          choco install boost-msvc-14.3 --version=1.78.0 -y
+          echo "BOOST_ROOT=C:\local\boost_1_78_0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Cache dependencies and build artifacts
-        id: cache-azerothcore
-        uses: actions/cache@v3
-        with:
-          # 指定要缓存的路径
-          path: |
-            # 缓存依赖安装目录
-            /opt/azerothcore/deps
-            # 缓存构建目录
-            /opt/azerothcore/build
-          key: ${{ runner.os }}-azerothcore-${{ hashFiles('CMakeLists.txt', 'deps/**') }}
-          restore-keys: |
-            ${{ runner.os }}-azerothcore-
-      
-      - name: Set up build environment
+      - name: Install MySQL 8.4
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential git cmake make gcc g++ clang libssl-dev libbz2-dev libreadline-dev libncurses-dev libboost-all-dev lsb-release gnupg wget
-      
-      - name: Create build directory
-        run: mkdir build
+          choco install mysql --version=8.0.28 -y
+          echo "MYSQL_DIR=C:\Program Files\MySQL\MySQL Server 8.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Configure CMake
-        working-directory: build
-        run: cmake ../ -DCMAKE_INSTALL_PREFIX=$HOME/azeroth-server -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
-
-      - name: Compile AzerothCore
-        working-directory: build
-        run: make -j $(nproc)
-
-      - name: Install AzerothCore
-        working-directory: build
-        run: make install
-
-      - name: Generate timestamped package name
-        id: package_name
+      - name: Install OpenSSL 3.32
         run: |
-          TIMESTAMP=$(date +"%Y%m%d")
-          echo "package_name=azerothcore_${TIMESTAMP}.tar.gz" >> $GITHUB_OUTPUT
+          choco install openssl --version=3.0.8 -y
+          echo "OPENSSL_ROOT_DIR=C:\Program Files\OpenSSL-Win64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Package the compiled files
+      - name: Install CMake 3.31.5
         run: |
-          cd  /home/runner/azeroth-server
-          tar -czvf ${{ steps.package_name.outputs.package_name }} azeroth-server
+          choco install cmake --version=3.31.5 -y --installargs 'ADD_CMAKE_TO_PATH=System'
 
+      - name: Install MS Visual Studio Community 2022
+        run: |
+          choco install visualstudio2022community -y --package-parameters "--add Microsoft.VisualStudio.Workload.NativeDesktop"
+
+      # 配置和编译项目
+      - name: Configure project
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 17 2022"
+
+      - name: Build project
+        run: |
+          cd build
+          cmake --build . --config Release
+
+      # 打包编译结果
+      - name: Package build output
+        run: |
+          $date = Get-Date -Format "yyyyMMdd"
+          Compress-Archive -Path build\Release\* -DestinationPath playerbot-$date.zip
+
+      # 创建 Release 并上传
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
+          tag_name: ${{ format('v{0}', github.run_number) }}
+          release_name: Playerbot Build ${{ format('{0}', github.run_number) }}
+          body: |
+            Playerbot build for ${{ github.sha }}
+            Date: ${{ format('{0:yyyy-MM-dd}', github.event.created_at) }}
           draft: false
           prerelease: false
 
@@ -94,6 +81,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.package_name.outputs.package_name }}
-          asset_name: ${{ steps.package_name.outputs.package_name }}
-          asset_content_type: application/gzip
+          asset_path: ./playerbot-${{ format('{0:yyyyMMdd}', github.event.created_at) }}.zip
+          asset_name: playerbot-${{ format('{0:yyyyMMdd}', github.event.created_at) }}.zip
+          asset_content_type: application/zip
+
+      # 保留最新的 3 份 Release
+      - name: Delete old releases
+        uses: dev-drprasad/delete-older-releases@v0.2.0
+        with:
+          keep_latest: 3
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
