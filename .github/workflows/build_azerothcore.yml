@@ -90,7 +90,18 @@ jobs:
         id: date
         run: echo "::set-output name=date::$(date +'%Y%m%d')"
 
-      # 创建 Release
+      # 删除之前的 Release（如果存在）
+      - name: Delete Previous Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          previous_release_id=$(gh api repos/${{ github.repository }}/releases | jq -r '.[0].id?')
+          if [ -n "$previous_release_id" ]; then
+            gh api --method DELETE repos/${{ github.repository }}/releases/$previous_release_id
+          fi
+
+      # 创建新的 Release
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -113,15 +124,3 @@ jobs:
           asset_path: ./${{ env.AC_DIR }}/build/compiled_files.tar.gz
           asset_name: compiled_files_${{ steps.date.outputs.date }}.tar.gz
           asset_content_type: application/gzip
-
-      # 清理旧的 Release，只保留一个
-      - name: Clean Up Old Releases
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e
-          latest_release_id=$(gh api repos/${{ github.repository }}/releases | jq -r 'sort_by(.created_at) | last.id')
-          old_release_ids=$(gh api repos/${{ github.repository }}/releases | jq -r '.[].id | select(. != '"$latest_release_id"')')
-          for id in $old_release_ids; do
-            gh api --method DELETE repos/${{ github.repository }}/releases/$id
-          done
