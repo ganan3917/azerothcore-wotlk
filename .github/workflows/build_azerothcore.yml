@@ -12,17 +12,9 @@ on:
         description: '要编译的分支'
         required: true
         default: 'Playerbot'
-      module_repo_url:
-        description: '模块仓库地址'
-        required: false
-        default: 'https://github.com/ganan3917/mod-playerbots.git'
-      module_branch:
-        description: 'master'
-        required: false
-        default: 'master'
   # 每天凌晨 5 点自动触发
   schedule:
-    - cron: '0 5 * * *'
+     - cron: '0 5 * * *'
 
 jobs:
   build-and-package:
@@ -42,12 +34,11 @@ jobs:
           git submodule update --init --recursive
 
       # 若提供了模块仓库地址，拉取模块到 modules 目录
-      - name: Clone Module Repository (if provided)
-        if: github.event.inputs.module_repo_url != ''
+      - name: Clone Module Repository 
         run: |
           mkdir -p azerothcore-wotlk/modules
           cd azerothcore-wotlk/modules
-          git clone ${{ github.event.inputs.module_repo_url }} -b ${{ github.event.inputs.module_branch }}
+          git clone https://github.com/ganan3917/mod-playerbots.git modules/mod-playerbots
 
       # 创建构建目录
       - name: Create Build Directory
@@ -65,12 +56,6 @@ jobs:
           cd azerothcore-wotlk/build
           make -j 4
           make install
-
-      # 显示编译后文件存储的目录
-      - name: Show Compiled Files Directory
-        run: |
-          compiled_dir="$(pwd)/azerothcore-wotlk/build/install"
-          echo "编译后的文件存储在: $compiled_dir"
 
       # 打包编译后的文件
       - name: Package Compiled Files
