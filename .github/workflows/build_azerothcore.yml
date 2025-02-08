@@ -12,7 +12,11 @@ jobs:
       # 检出代码
       - name: Checkout code
         uses: actions/checkout@v3
-
+        
+     - name: Install C++ libraries
+        run: |
+          choco install -y boost-msvc-14.3 cmake ninja openssl
+          
       # 安装 Boost 1.78
       - name: Install Boost 1.78
         run: |
