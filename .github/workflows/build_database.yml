@@ -3,77 +3,68 @@ name: build_database
 on:
   # 支持手动触发工作流，并允许指定拉取的分支
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to checkout'
-        required: false
-        default: playerbot
   # 支持按计划自动触发工作流，每天凌晨 3 点（UTC 时间）执行
   schedule:
     - cron: '0 3 * * *'
 
 jobs:
-  setup-database:
-    runs-on: ubuntu-22.04
-    
+  build:
+    runs-on: windows-latest
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Install MySQL 8
-        run: |
-          sudo apt - get update
-          sudo apt - get install - y mysql - server
-          sudo systemctl start mysql
-          sudo mysql - e "ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '123456';"
-          sudo mysql - e "CREATE DATABASE `auth` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;;"
-          sudo mysql - e "CREATE DATABASE `world` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;;"
-          sudo mysql - e "CREATE DATABASE `characters` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
-          sudo mysql - e "CREATE DATABASE `playerbots` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
+    - name: Clone specific repository
+      run: git clone <repository-url> myrepo
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Import base SQL files
-        run: |
-          sudo mysql -uroot -p123456 auth < azerothcore/data/sql/base/auth.sql
-          sudo mysql -uroot -p123456 world < azerothcore/data/sql/base/world.sql
-          sudo mysql -uroot -p123456 characters < azerothcore/data/sql/base/characters.sql
-          sudo mysql -uroot -p123456 playerbots < azerothcore/data/sql/base/playerbots.sql
+    - name: Set up MySQL 8
+      uses: microsoft/setup-mysql@v1
+      with:
+        mysql-version: '8.0'
+        mysql-root-password: '123456'
 
-      - name: Import update SQL files
-        run: |
-          for file in azerothcore/data/sql/updates/*.sql; do
-            if [[ $file == *"auth"* ]]; then
-              sudo mysql -uroot -p123456 auth < $file
-            elif [[ $file == *"world"* ]]; then
-              sudo mysql -uroot -p123456 world < $file
-            elif [[ $file == *"characters"* ]]; then
-              sudo mysql -uroot -p123456 characters < $file
-            elif [[ $file == *"playerbots"* ]]; then
-              sudo mysql -uroot -p123456 playerbots < $file
-            fi
-          done
+    - name: Create databases
+      run: |
+        mysql -uroot -p123456 -e "CREATE DATABASE auth CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
+        mysql -uroot -p123456 -e "CREATE DATABASE world CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
+        mysql -uroot -p123456 -e "CREATE DATABASE characters CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
+        mysql -uroot -p123456 -e "CREATE DATABASE playerbots CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
 
-      - name: Export databases
-        run: |
-          CURRENT_TIME=$(date +%Y%m%d)
-          mysqldump -uroot -p123456 auth > auth_$CURRENT_TIME.sql
-          mysqldump -uroot -p123456 world > world_$CURRENT_TIME.sql
-          mysqldump -uroot -p123456 characters > characters_$CURRENT_TIME.sql
-          mysqldump -uroot -p123456 playerbots > playerbots_$CURRENT_TIME.sql
-          tar -czvf databases_$CURRENT_TIME.tar.gz auth_$CURRENT_TIME.sql world_$CURRENT_TIME.sql characters_$CURRENT_TIME.sql playerbots_$CURRENT_TIME.sql
+    - name: Import base SQL files
+      run: |
+        mysql -uroot -p123456 auth < myrepo/data/sql/base/auth.sql
+        mysql -uroot -p123456 world < myrepo/data/sql/base/world.sql
+        mysql -uroot -p123456 characters < myrepo/data/sql/base/characters.sql
+        mysql -uroot -p123456 playerbots < myrepo/data/sql/base/playerbots.sql
 
-      - name: Upload to Release
-        uses: actions/upload - release - asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          asset_path: databases_$CURRENT_TIME.tar.gz
-          asset_name: databases_$CURRENT_TIME.tar.gz
-          asset_content_type: application/gzip
+    - name: Import update SQL files
+      run: |
+        mysql -uroot -p123456 auth < myrepo/data/sql/updates/auth.sql
+        mysql -uroot -p123456 world < myrepo/data/sql/updates/world.sql
+        mysql -uroot -p123456 characters < myrepo/data/sql/updates/characters.sql
+        mysql -uroot -p123456 playerbots < myrepo/data/sql/updates/playerbots.sql
 
-      - name: Clean up old releases
-        uses: ijliao/delete - release - assets@v15
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          pattern: databases_*.tar.gz
-          keep_days: 3
+    - name: Export databases
+      run: |
+        $timestamp = Get-Date -Format "YYYYMMdd"
+        $backupFileName = "databases_$timestamp.zip"
+        mysqldump -uroot -p123456 auth > auth.sql
+        mysqldump -uroot -p123456 world > world.sql
+        mysqldump -uroot -p123456 characters > characters.sql
+        mysqldump -uroot -p123456 playerbots > playerbots.sql
+        Compress-Archive -Path auth.sql,world.sql,characters.sql,playerbots.sql -DestinationPath $backupFileName
+
+    - name: Upload to Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: databases_*.zip
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Clean up old releases
+      uses: mjansen/github-purge-releases@v12
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        keep_days: 3
