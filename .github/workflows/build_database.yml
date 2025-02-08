@@ -45,10 +45,16 @@ jobs:
       # 导入 SQL 文件
       - name: Import SQL files
         run: |
-          for file in azerothcore-wotlk/sql/base/*.sql; do
+            use auth
+            for file in azerothcore-wotlk/sql/base/db_auth/*.sql; do
             mysql -u root -proot auth < $file
+            use characters
+            for file in azerothcore-wotlk/sql/base/db_characters/*.sql; do
             mysql -u root -proot characters < $file
+            use world
+            for file in azerothcore-wotlk/sql/base/db_characters/*.sql; do
             mysql -u root -proot world < $file
+            use playerbots
             mysql -u root -proot playerbots < $file
           done
           for file in azerothcore-wotlk/sql/updates/*.sql; do
