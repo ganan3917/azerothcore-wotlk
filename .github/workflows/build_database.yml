@@ -11,7 +11,7 @@ on:
       branch:
         description: '要拉取的分支'
         required: true
-        default: 'playerbot'
+        default: 'Playerbot'
   # 支持自动触发，这里设置为每周六凌晨 2 点触发
   schedule:
     - cron: '0 2 * * *'
