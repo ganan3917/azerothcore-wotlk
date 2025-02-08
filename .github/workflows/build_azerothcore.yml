@@ -20,8 +20,11 @@ jobs:
       # 安装 Boost 1.78
       - name: Install Boost 1.78
         run: |
-          choco install boost-msvc-14.3 --version 1.78.0 -y
-          refreshenv
+            choco install -y \
+            boost-msvc-14.3 \
+            openssl \
+            cmake \
+            ninja
 
       # 安装 MySQL Server 8.0（注意：目前 MySQL Server 最新稳定版为 8.0，没有 8.4 版本）
       - name: Install MySQL Server 8.0
