@@ -59,7 +59,7 @@ jobs:
       - name: Import update SQL files
         run: |
           for file in azerothcore-wotlk/data/sql/updates/db_world/*.sql; do
-            mysql -u root -proot world < $file
+            mysql -u root -proot world < $file --force
           done
 
       # 导出数据库并打包
