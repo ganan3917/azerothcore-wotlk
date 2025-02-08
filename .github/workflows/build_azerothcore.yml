@@ -64,7 +64,7 @@ jobs:
       - name: Package Compiled Files
         run: |
           cd azerothcore-wotlk/build/install
-          tar -czvf ../../compiled_files.tar.gz .
+          tar -czvf ../../Azerothcore_Linux.tar.gz .
 
       # 获取当前日期
       - name: Get Current Date
