@@ -65,9 +65,6 @@ jobs:
       # 导入更新 SQL 文件
       - name: Import update SQL files
         run: |
-          for file in azerothcore-wotlk/data/sql/updates/db_auth/*.sql; do
-            mysql -u root -proot auth < $file --force
-          done
           for file in azerothcore-wotlk/data/sql/updates/db_characters/*.sql; do
             mysql -u root -proot character < $file --force
           done
