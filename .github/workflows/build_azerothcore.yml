@@ -39,7 +39,10 @@ jobs:
           mkdir -p azerothcore-wotlk/modules
           cd azerothcore-wotlk/modules
           git clone https://github.com/ganan3917/mod-playerbots.git modules/mod-playerbots
-
+          git clone https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
+          git clone https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
+          git clone https://github.com/azerothcore/mod-eluna.git modules/mod-eluna
+          
       # 创建构建目录
       - name: Create Build Directory
         run: mkdir -p azerothcore-wotlk/build
