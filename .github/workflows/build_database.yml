@@ -26,13 +26,8 @@ jobs:
           mysqld --initialize-insecure
           Start-Service MySQL80
           mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';"
-          mysql -u root -p123456 -e "CREATE DATABASE IF NOT EXISTS auth; CREATE DATABASE IF NOT EXISTS characters; CREATE DATABASE IF NOT EXISTS world; CREATE DATABASE IF NOT EXISTS playerbots;"
+          # mysql -u root -p123456 -e "CREATE DATABASE IF NOT EXISTS auth; CREATE DATABASE IF NOT EXISTS characters; CREATE DATABASE IF NOT EXISTS world; CREATE DATABASE IF NOT EXISTS playerbots;"
      
-      - name: Start MySQL Service
-        shell: powershell
-        run: |
-          Start-Service -Name MySQL80
-
       # 导入 base 文件夹中的 SQL 文件到数据库
       - name: Import base data
         run: |
