@@ -1,0 +1,77 @@
+name: AzerothCore Database Operations
+on:
+  push:
+    branches:
+      - playerbots  # 替换为你要触发工作流程的分支
+
+jobs:
+  setup-and-import:
+    runs-on: ubuntu - latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Clone AzerothCore repository
+        uses: actions/checkout@v2
+        with:
+          repository: azerothcore/azerothcore - wotlk
+          path: azerothcore
+          ref: master  # 替换为你想要的分支或版本
+
+      - name: Install MySQL 8
+        run: |
+          sudo apt - get update
+          sudo apt - get install - y mysql - server
+          sudo systemctl start mysql
+          sudo mysql - e "ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '123456';"
+          sudo mysql - e "CREATE DATABASE auth;"
+          sudo mysql - e "CREATE DATABASE world;"
+          sudo mysql - e "CREATE DATABASE characters;"
+          sudo mysql - e "CREATE DATABASE playerbots;"
+
+      - name: Import base SQL files
+        run: |
+          sudo mysql -uroot -p123456 auth < azerothcore/data/sql/base/auth.sql
+          sudo mysql -uroot -p123456 world < azerothcore/data/sql/base/world.sql
+          sudo mysql -uroot -p123456 characters < azerothcore/data/sql/base/characters.sql
+          sudo mysql -uroot -p123456 playerbots < azerothcore/data/sql/base/playerbots.sql
+
+      - name: Import update SQL files
+        run: |
+          for file in azerothcore/data/sql/updates/*.sql; do
+            if [[ $file == *"auth"* ]]; then
+              sudo mysql -uroot -p123456 auth < $file
+            elif [[ $file == *"world"* ]]; then
+              sudo mysql -uroot -p123456 world < $file
+            elif [[ $file == *"characters"* ]]; then
+              sudo mysql -uroot -p123456 characters < $file
+            elif [[ $file == *"playerbots"* ]]; then
+              sudo mysql -uroot -p123456 playerbots < $file
+            fi
+          done
+
+      - name: Export databases
+        run: |
+          CURRENT_TIME=$(date +%Y%m%d%H%M%S)
+          mysqldump -uroot -p123456 auth > auth_$CURRENT_TIME.sql
+          mysqldump -uroot -p123456 world > world_$CURRENT_TIME.sql
+          mysqldump -uroot -p123456 characters > characters_$CURRENT_TIME.sql
+          mysqldump -uroot -p123456 playerbots > playerbots_$CURRENT_TIME.sql
+          tar -czvf databases_$CURRENT_TIME.tar.gz auth_$CURRENT_TIME.sql world_$CURRENT_TIME.sql characters_$CURRENT_TIME.sql playerbots_$CURRENT_TIME.sql
+
+      - name: Upload to Release
+        uses: actions/upload - release - asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          asset_path: databases_$CURRENT_TIME.tar.gz
+          asset_name: databases_$CURRENT_TIME.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Clean up old releases
+        uses: ijliao/delete - release - assets@v15
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          pattern: databases_*.tar.gz
+          keep_days: 3
