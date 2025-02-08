@@ -3,16 +3,16 @@ name: Database Backup and Release
 on:
   # 支持手动触发工作流
   workflow_dispatch:
-  # 每天凌晨 3 点自动触发工作流，你可以根据需求修改 cron 表达式
+  # 每天凌晨 3 点自动触发，可按需修改 cron 表达式
   schedule:
     - cron: '0 3 * * *'
 
 jobs:
-  build:
+  backup-databases:
     runs-on: windows-latest
 
     steps:
-      # 克隆指定仓库到默认路径（在 Windows 上默认路径类似 D:\a\azerothcore-wotlk）
+      # 克隆指定仓库到 D:\a\azerothcore-wotlk
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -21,15 +21,14 @@ jobs:
       # 安装 MySQL 8 数据库
       - name: Install MySQL 8
         run: |
-          choco install mysql -y --version=8.0.28
+          choco install mysql -y --version=8.0.33
           $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-          # 初始化 MySQL 并设置 root 密码为 123456
           mysqld --initialize-insecure
           Start-Service MySQL80
           mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';"
           mysql -u root -p123456 -e "CREATE DATABASE IF NOT EXISTS auth; CREATE DATABASE IF NOT EXISTS characters; CREATE DATABASE IF NOT EXISTS world; CREATE DATABASE IF NOT EXISTS playerbots;"
 
-      # 导入 base 文件夹中的文件到数据库
+      # 导入 base 文件夹中的 SQL 文件到数据库
       - name: Import base data
         run: |
           Get-ChildItem -Path D:\a\azerothcore-wotlk\data\base -Filter *.sql | ForEach-Object {
@@ -39,7 +38,7 @@ jobs:
             mysql -u root -p123456 playerbots < $_.FullName
           }
 
-      # 导入 updates 文件夹中的文件到数据库
+      # 导入 updates 文件夹中的 SQL 文件到数据库
       - name: Import updates data
         run: |
           Get-ChildItem -Path D:\a\azerothcore-wotlk\data\updates -Filter *.sql | ForEach-Object {
@@ -49,21 +48,24 @@ jobs:
             mysql -u root -p123456 playerbots < $_.FullName
           }
 
-      # 导出数据库
+      # 分别导出 4 个数据库
       - name: Export databases
         run: |
           $date = Get-Date -Format "yyyyMMdd"
-          $backupFileName = "database_$date.sql"
-          mysqldump -u root -p123456 auth characters world playerbots > $backupFileName
+          $databases = @("auth", "characters", "world", "playerbots")
+          foreach ($db in $databases) {
+            mysqldump -u root -p123456 $db > "$db-$date.sql"
+          }
 
-      # 打包导出的 SQL 文件
-      - name: Compress backup file
+      # 打包导出的数据库文件
+      - name: Compress backup files
         run: |
           $date = Get-Date -Format "yyyyMMdd"
-          $backupFileName = "database_$date.sql"
-          Compress-Archive -Path $backupFileName -DestinationPath "$backupFileName.zip"
+          $backupFileName = "database_$date.zip"
+          $filesToCompress = Get-ChildItem -Filter *-$date.sql
+          Compress-Archive -Path $filesToCompress.FullName -DestinationPath $backupFileName
 
-      # 创建 Release
+      # 创建新的 Release
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -75,7 +77,7 @@ jobs:
           draft: false
           prerelease: false
 
-      # 上传导出的数据库压缩文件到 Release
+      # 上传打包后的数据库备份文件到 Release
       - name: Upload Release Asset
         id: upload-release-asset
         uses: actions/upload-release-asset@v1
@@ -83,11 +85,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./database_${{ date }}.sql.zip
-          asset_name: database_${{ date }}.sql.zip
+          asset_path: ./database_${{ date }}.zip
+          asset_name: database_${{ date }}.zip
           asset_content_type: application/zip
 
-      # 清理旧的 Releases，仅保留最新的 3 份
+      # 清理旧的 Releases，只保留最新的 3 份
       - name: Cleanup old releases
         uses: dev-drprasad/delete-older-releases@v0.2.0
         with:
