@@ -74,19 +74,23 @@ jobs:
       - name: Export and compress databases
         run: |
           set -e
-          DATE=$(date +%Y%m%d)
           mysqldump -u $DB_USER -p$DB_PASSWORD auth > auth.sql
           mysqldump -u $DB_USER -p$DB_PASSWORD characters > characters.sql
           mysqldump -u $DB_USER -p$DB_PASSWORD world > world.sql
-          tar -zcvf database-$DATE.sql.gz auth.sql characters.sql world.sql
+          tar -zcvf database.sql.gz auth.sql characters.sql world.sql
 
-      # 清理所有旧的 Releases
-      - name: Clean up all old Releases
+      # 获取当前日期
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +%Y%m%d)"
+
+      # 检查并删除现有的 Release
+      - name: Check and delete existing Release
         run: |
-          RELEASES=$(gh release list | awk '{print $1}')
-          for release in $RELEASES; do
-            gh release delete $release --yes
-          done
+          EXISTING_RELEASE=$(gh release list | head -n 1 | awk '{print $1}')
+          if [ -n "$EXISTING_RELEASE" ]; then
+            gh release delete $EXISTING_RELEASE --yes
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -95,9 +99,9 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.run_number }}
-          name: Release ${{ github.run_number }}
+          tag_name: database_backup_${{ steps.date.outputs.date }}
+          name: Database Backup Release ${{ steps.date.outputs.date }}
           body: "Database backup for AzerothCore-WoTLK"
-          files: database-*.sql.gz
+          files: database.sql.gz
           draft: false
           prerelease: false
