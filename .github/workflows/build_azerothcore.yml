@@ -54,8 +54,8 @@ jobs:
       - name: Generate timestamped package name
         id: package_name
         run: |
-          TIMESTAMP=$(date +"%Y%m%d%H%M%S")
-          echo "package_name=编译完成_${TIMESTAMP}.tar.gz" >> $GITHUB_OUTPUT
+          TIMESTAMP=$(date +"%Y%m%d")
+          echo "package_name=azerothcore_${TIMESTAMP}.tar.gz" >> $GITHUB_OUTPUT
 
       - name: Package the compiled files
         run: |
