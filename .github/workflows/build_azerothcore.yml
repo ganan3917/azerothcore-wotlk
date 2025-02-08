@@ -1,4 +1,4 @@
-name: Compile Playerbot Manually
+name: build_azerothcore
 
 on:
   # 支持手动触发工作流
