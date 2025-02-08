@@ -25,11 +25,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      # 安装编译所需的依赖组件
+      - name: Install Dependencies
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y gh
+          
       # 拉取指定的 AzerothCore 仓库及分支
       - name: Clone AzerothCore
         run: |
           git clone ${{ github.event.inputs.repo || 'https://github.com/azerothcore/azerothcore-wotlk.git' }} -b ${{ github.event.inputs.branch || 'master' }} azerothcore-wotlk
-      
+
       # 启动 MySQL 服务
       - name: Start MySQL service
         run: sudo systemctl start mysql.service
@@ -40,9 +48,8 @@ jobs:
           mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
           mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
           mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS playerbots CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-            # 导入基础 SQL 文件
+      # 导入基础 SQL 文件
       - name: Import base SQL files
         run: |
           for file in azerothcore-wotlk/data/sql/base/db_auth/*.sql; do
@@ -58,6 +65,12 @@ jobs:
       # 导入更新 SQL 文件
       - name: Import update SQL files
         run: |
+          for file in azerothcore-wotlk/data/sql/updates/db_auth/*.sql; do
+            mysql -u root -proot auth < $file --force
+          done
+          for file in azerothcore-wotlk/data/sql/updates/db_characters/*.sql; do
+            mysql -u root -proot character < $file --force
+          done
           for file in azerothcore-wotlk/data/sql/updates/db_world/*.sql; do
             mysql -u root -proot world < $file --force
           done
@@ -66,9 +79,22 @@ jobs:
       - name: Export and compress databases
         run: |
           DATE=$(date +%Y%m%d)
-          mysqldump -u root -proot auth characters world playerbots > database.sql
+          mysqldump -u root -proot auth characters world > database.sql
           gzip database.sql
           mv database.sql.gz database-$DATE.sql.gz
+
+      # 计算文件的 MD5 值
+      - name: Calculate MD5
+        id: calculate_md5
+        run: |
+          MD5=$(md5sum database-$DATE.sql.gz | awk '{print $1}')
+          echo "MD5=$MD5" >> $GITHUB_OUTPUT
+
+      # 重命名文件
+      - name: Rename file
+        run: |
+          NEW_NAME="database_${{ steps.calculate_md5.outputs.MD5 }}_${{ env.DATE }}.sql.gz"
+          mv database-$DATE.sql.gz $NEW_NAME
 
       # 创建或更新 Release
       - name: Create or update Release
@@ -78,7 +104,7 @@ jobs:
           tag_name: ${{ github.run_number }}
           name: Release ${{ github.run_number }}
           body: "Database backup for AzerothCore-WoTLK"
-          files: database-*.sql.gz
+          files: database_*.sql.gz
           draft: false
           prerelease: false
 
