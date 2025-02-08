@@ -54,15 +54,15 @@ jobs:
           $date = Get-Date -Format "yyyyMMdd"
           $databases = @("auth", "characters", "world", "playerbots")
           foreach ($db in $databases) {
-            mysqldump -u root -p123456 $db > "$db-$date.sql"
+            mysqldump -u root -p123456 $db > "db_${db}_$date.sql"
           }
 
       # 打包导出的数据库文件
       - name: Compress backup files
         run: |
           $date = Get-Date -Format "yyyyMMdd"
-          $backupFileName = "database_$date.zip"
-          $filesToCompress = Get-ChildItem -Filter *-$date.sql
+          $backupFileName = "database_backup_$date.zip"
+          $filesToCompress = Get-ChildItem -Filter db_*_$date.sql
           Compress-Archive -Path $filesToCompress.FullName -DestinationPath $backupFileName
 
       # 创建新的 Release
@@ -72,8 +72,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: database_${{ github.run_id }}
-          release_name: Database Backup ${{ github.run_id }}
+          tag_name: $date
+          release_name: Database Backup $date
           draft: false
           prerelease: false
 
@@ -85,8 +85,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./database_${{ $date }}.zip
-          asset_name: database_${{ $date }}.zip
+          asset_path: ./database_backup_${{ date }}.zip
+          asset_name: database_backup_${{ date }}.zip
           asset_content_type: application/zip
 
       # 清理旧的 Releases，只保留最新的 3 份
