@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Download File
-        run: wget -O dbimport.tar.gz https://github.com/ganan3917/azerothcore-wotlk/archive/refs/tags/dbimport.zip
+        run: wget -O dbimport.tar.gz https://github.com/ganan3917/azerothcore-wotlk/releases/download/dbimport.tag.gz/dbimport.tar.gz
         # 请将上面的链接替换为实际的Releases链接
       - name: Extract File
         run: tar -zxvf dbimport.tar.gz
