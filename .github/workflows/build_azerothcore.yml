@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
       # 检出代码
@@ -14,9 +14,8 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: playerbot
-          token: ${{ secrets.GITHUB_TOKEN }}
           retry: 3
-          
+
       # 安装 Boost 1.78
       - name: Install Boost 1.78
         run: |
@@ -39,11 +38,6 @@ jobs:
       - name: Install CMake 3.31.5
         run: |
           choco install cmake --version=3.31.5 -y --installargs 'ADD_CMAKE_TO_PATH=System'
-
-      # 安装 MS Visual Studio Community 2022
-      - name: Install MS Visual Studio Community 2022
-        run: |
-          choco install visualstudio2022community -y --package-parameters "--add Microsoft.VisualStudio.Workload.NativeDesktop"
 
       # 配置和编译项目
       - name: Configure project
