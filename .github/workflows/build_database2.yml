@@ -10,13 +10,40 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Download File
-        run: wget -O dbimport.tar.gz https://github.com/ganan3917/azerothcore-wotlk/releases/download/dbimport250208/dbimport.tar.gz
-        # 请将上面的链接替换为实际的Releases链接
-      - name: Extract File
-        run: tar -zxvf dbimport.tar.gz
+        run: |
+          wget -O dbimport.tar.gz https://github.com/ganan3917/azerothcore-wotlk/releases/download/dbimport250208/dbimport.tar.gz
+          if [ $? -ne 0 ]; then
+            echo "Download failed. Please check the network connection or the validity of the download link."
+            exit 1
+          fi
+      - name: Create Target Directory
+        run: |
+          TARGET_DIR="extracted_dbimport"
+          mkdir -p "$TARGET_DIR"
+          if [ $? -ne 0 ]; then
+            echo "Failed to create the target directory '$TARGET_DIR'."
+            exit 1
+          fi
+      - name: Extract File to Target Directory
+        run: |
+          TARGET_DIR="extracted_dbimport"
+          tar -zxvf dbimport.tar.gz -C "$TARGET_DIR"
+          if [ $? -ne 0 ]; then
+            echo "Extraction failed. The downloaded file might be corrupted or in an incorrect format."
+            exit 1
+          fi
       - name: Display Directory Structure
         run: |
           apt-get update
           apt-get install -y tree
-          tree dbimport
-    
+          if [ $? -ne 0 ]; then
+            echo "Failed to install the 'tree' tool. Please check the package source configuration and network connection."
+            exit 1
+          fi
+          TARGET_DIR="extracted_dbimport"
+          if [ -d "$TARGET_DIR" ]; then
+            tree "$TARGET_DIR"
+          else
+            echo "Directory '$TARGET_DIR' not found after extraction. Please check the extraction result."
+            exit 1
+          fi
