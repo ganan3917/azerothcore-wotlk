@@ -25,14 +25,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
-
+      
       # 克隆 AzerothCore-WoTLK 仓库
       - name: Clone AzerothCore-WoTLK Repository
         run: |
           git clone ${{ github.event.inputs.repo_url }} -b ${{ github.event.inputs.branch }} azerothcore-wotlk
           cd azerothcore-wotlk
           git submodule update --init --recursive
-
+          
       # 若提供了模块仓库地址，拉取模块到 modules 目录
       - name: Clone Module Repository 
         run: |
@@ -52,20 +52,17 @@ jobs:
         run: |
           cd azerothcore-wotlk/build
           cmake .. -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
-
       # 编译项目
       - name: Compile Project
         run: |
           cd azerothcore-wotlk/build
           make -j 4
           make install
-
       # 打包编译后的文件
       - name: Package Compiled Files
         run: |
           cd azerothcore-wotlk/build/install
-          tar -czvf ../../Azerothcore_Linux.tar.gz .
-
+          tar -czvf ../../compiled_files.tar.gz .
       # 获取当前日期
       - name: Get Current Date
         id: date
@@ -79,8 +76,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.date.outputs.date }}
-          release_name: Azerothcore_${{ steps.date.outputs.date }}
-          body: 'AzerothCore-WoTLK for ${{ steps.date.outputs.date }}'
+          release_name: Release ${{ steps.date.outputs.date }}
+          body: 'AzerothCore-WoTLK Linux for ${{ steps.date.outputs.date }}'
           draft: false
           prerelease: false
 
@@ -91,8 +88,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./azerothcore-wotlk/Azerothcore_Linux.tar.gz
-          asset_name: Azerothcore_Linux.tar.gz
+          asset_path: ./azerothcore-wotlk/compiled_files.tar.gz
+          asset_name: compiled_files.tar.gz
           asset_content_type: application/gzip
 
       # 清理旧的 Release，仅保留最近 3 个
