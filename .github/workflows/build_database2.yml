@@ -1,0 +1,22 @@
+name: build_database2
+on:
+  # 手动触发
+  workflow_dispatch:
+  # 按时间表自动运行，这里设置为每天凌晨2点运行
+  schedule:
+    - cron: '0 3 * * *'
+jobs:
+  download-and-extract:
+    runs-on: ubuntu - latest
+    steps:
+      - name: Download File
+        uses: wget https://github.com/ganan3917/azerothcore-wotlk/archive/refs/tags/dbimport.zip
+        # 请将上面的链接替换为实际的Releases链接
+      - name: Extract File
+        run: tar -zxvf dbimport.zip
+      - name: Display Directory Structure
+        run: |
+          sudo apt - get update
+          sudo apt - get install - y tree
+          tree 解压后的目录名
+          # 将“解压后的目录名”替换为实际解压后的目录名称，如果解压后直接是文件，可省略目录名
