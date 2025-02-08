@@ -76,7 +76,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.date.outputs.date }}
-          release_name: Release ${{ steps.date.outputs.date }}
+          release_name: Azerothcore_${{ steps.date.outputs.date }}
           body: 'Compiled AzerothCore-WoTLK files for ${{ steps.date.outputs.date }}'
           draft: false
           prerelease: false
