@@ -6,37 +6,42 @@ on:
   # 定时触发，每天凌晨 5 点执行
   schedule:
     - cron: '0 5 * * *'
-
 jobs:
-  delete-old-runs:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete old workflow runs
+      - name: Get All Workflows and Delete Old Runs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DAYS_TO_KEEP: 3
+          # 保留每个工作流最新的运行记录数量
+          KEEP_LATEST: 3 
         run: |
-          # 获取仓库的所有者和名称
-          OWNER=$(echo ${{ github.repository }} | cut -d '/' -f 1)
-          REPO=$(echo ${{ github.repository }} | cut -d '/' -f 2)
+          # 获取仓库中所有工作流
+          WORKFLOWS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows" | \
+            jq -r '.workflows[].id')
 
-          # 获取当前日期
-          CURRENT_DATE=$(date +%Y-%m-%d)
+          for WORKFLOW_ID in $WORKFLOWS; do
+            echo "Processing workflow with ID: $WORKFLOW_ID"
+            # 获取当前工作流的所有运行记录
+            RUNS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$WORKFLOW_ID/runs?per_page=100" | \
+              jq -r '.workflow_runs[].id')
 
-          # 计算 3 天前的日期
-          THREE_DAYS_AGO=$(date -d "$CURRENT_DATE - $DAYS_TO_KEEP days" +%Y-%m-%d)
+            # 将运行记录 ID 存储到数组中
+            IDS=($RUNS)
+            # 计算需要删除的运行记录数量
+            DELETE_COUNT=$(( ${#IDS[@]} - $KEEP_LATEST ))
 
-          # 获取所有工作流 ID
-          WORKFLOW_IDS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$OWNER/$REPO/actions/workflows" | jq -r '.workflows[].id')
-
-          # 遍历每个工作流 ID
-          for WORKFLOW_ID in $WORKFLOW_IDS; do
-            # 获取该工作流的所有运行记录
-            RUNS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$OWNER/$REPO/actions/workflows/$WORKFLOW_ID/runs" | jq -r '.workflow_runs[] | select(.created_at < "'$THREE_DAYS_AGO'T00:00:00Z") | .id')
-
-            # 遍历符合条件的运行记录 ID 并删除
-            for RUN_ID in $RUNS; do
-              echo "Deleting workflow run $RUN_ID for workflow $WORKFLOW_ID"
-              curl -X DELETE -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/$OWNER/$REPO/actions/runs/$RUN_ID"
-            done
+            if [ $DELETE_COUNT -gt 0 ]; then
+              for ((i = 0; i < $DELETE_COUNT; i++)); do
+                RUN_ID=${IDS[$i]}
+                echo "Deleting run with ID: $RUN_ID"
+                # 调用 API 删除运行记录
+                curl -s -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" \
+                  "https://api.github.com/repos/${{ github.repository }}/actions/runs/$RUN_ID"
+              done
+            else
+              echo "No runs to delete for workflow with ID: $WORKFLOW_ID."
+            fi
           done
