@@ -80,7 +80,7 @@ jobs:
         with:
           tag_name: ${{ steps.date.outputs.date }}
           release_name: Azerothcore_${{ steps.date.outputs.date }}
-          body: 'Compiled AzerothCore-WoTLK files for ${{ steps.date.outputs.date }}'
+          body: 'AzerothCore-WoTLK for ${{ steps.date.outputs.date }}'
           draft: false
           prerelease: false
 
@@ -91,8 +91,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./azerothcore-wotlk/compiled_files.tar.gz
-          asset_name: compiled_files.tar.gz
+          asset_path: ./azerothcore-wotlk/Azerothcore_Linux.tar.gz
+          asset_name: Azerothcore_Linux.tar.gz
           asset_content_type: application/gzip
 
       # 清理旧的 Release，仅保留最近 3 个
