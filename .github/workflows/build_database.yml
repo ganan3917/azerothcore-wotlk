@@ -72,8 +72,11 @@ jobs:
       # 导出数据库并打包
       - name: Export and compress databases
         run: |
+          mkdir database
           DATE=$(date +%Y%m%d)
-          mysqldump -u root -proot auth characters world > database.sql
+          mysqldump -u root -proot auth characters world > database/world.sql
+          mysqldump -u root -proot auth characters auth > database/auth.sql
+          mysqldump -u root -proot auth characters characters > database/characters.sql
           gzip database.sql
           mv database.sql.gz database-$DATE.sql.gz
 
