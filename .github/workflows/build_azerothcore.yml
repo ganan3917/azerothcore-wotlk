@@ -12,6 +12,10 @@ on:
         description: '要编译的分支'
         required: true
         default: 'Playerbot'
+      module_repos:
+        description: '模块仓库地址，多个地址用空格分隔'
+        required: false
+        default: 'https://github.com/ganan3917/mod-playerbots.git https://github.com/azerothcore/mod-learn-spells.git https://github.com/azerothcore/mod-autobalance.git https://github.com/azerothcore/mod-eluna.git'
   # 每天凌晨 5 点自动触发
   schedule:
      - cron: '0 5 * * *'
@@ -19,53 +23,88 @@ on:
 jobs:
   build-and-package:
     runs-on: ubuntu-22.04
+    env:
+      AC_DIR: azerothcore-wotlk
     steps:
       # 安装编译所需的依赖组件
       - name: Install Dependencies
         run: |
+          set -e
           sudo apt-get update
           sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y gh
+          sudo systemctl start mysql
       # 克隆 AzerothCore-WoTLK 仓库
       - name: Clone AzerothCore-WoTLK Repository
         run: |
-          git clone ${{ github.event.inputs.repo_url }} -b ${{ github.event.inputs.branch }} azerothcore-wotlk
-          cd azerothcore-wotlk
+          set -e
+          git clone ${{ github.event.inputs.repo_url }} -b ${{ github.event.inputs.branch }} ${{ env.AC_DIR }}
+          cd ${{ env.AC_DIR }}
           git submodule update --init --recursive
       
       # 若提供了模块仓库地址，拉取模块到 modules 目录
       - name: Clone Module Repository 
         run: |
-          mkdir -p azerothcore-wotlk/modules
-          cd azerothcore-wotlk/modules
-          git clone https://github.com/ganan3917/mod-playerbots.git modules/mod-playerbots
-          git clone https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
-          git clone https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
-          git clone https://github.com/azerothcore/mod-eluna.git modules/mod-eluna
+          set -e
+          mkdir -p ${{ env.AC_DIR }}/modules
+          cd ${{ env.AC_DIR }}/modules
+          for repo in ${{ github.event.inputs.module_repos }}; do
+            git clone $repo
+          done
       
       # 创建构建目录
       - name: Create Build Directory
-        run: mkdir -p azerothcore-wotlk/build
+        run: |
+          set -e
+          mkdir -p ${{ env.AC_DIR }}/build
 
       # 使用 CMake 配置项目
       - name: Configure CMake
         run: |
-          cd azerothcore-wotlk/build
+          set -e
+          cd ${{ env.AC_DIR }}/build
           cmake .. -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
+      
       # 编译项目
       - name: Compile Project
         run: |
-          cd azerothcore-wotlk/build
+          set -e
+          cd ${{ env.AC_DIR }}/build
           make -j 4
           make install
       # 打包编译后的文件
       - name: Package Compiled Files
         run: |
-          cd azerothcore-wotlk/build/install
+          set -e
+          cd ${{ env.AC_DIR }}/build/install
           tar -czvf ../../compiled_files.tar.gz .
+      
       # 获取当前日期
       - name: Get Current Date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y%m%d%h%m%s')"
+        run: echo "::set-output name=date::$(date +'%Y%m%d')"
+
+      # 计算打包文件的 MD5 值
+      - name: Calculate MD5
+        id: md5
+        run: |
+          md5=$(md5sum ./${{ env.AC_DIR }}/compiled_files.tar.gz | awk '{print $1}')
+          echo "::set-output name=md5::$md5"
+
+      # 生成新的文件名
+      - name: Generate New Filename
+        id: new_filename
+        run: |
+          new_name="azerothcore_Linux_${{ steps.date.outputs.date }}_${{ steps.md5.outputs.md5 }}.tar.gz"
+          echo "::set-output name=name::$new_name"
+
+      # 重命名打包文件
+      - name: Rename Package
+        run: |
+          mv ./${{ env.AC_DIR }}/compiled_files.tar.gz ./${{ env.AC_DIR }}/${{ steps.new_filename.outputs.name }}
 
       # 创建 Release
       - name: Create Release
@@ -75,7 +114,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.date.outputs.date }}
-          release_name: Release ${{ steps.date.outputs.date }}
+          release_name: Release ${{ steps.date.outputs.date }} 
           body: 'Compiled AzerothCore-WoTLK files for ${{ steps.date.outputs.date }}'
           draft: false
           prerelease: false
@@ -87,8 +126,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./azerothcore-wotlk/compiled_files.tar.gz
-          asset_name: compiled_files.tar.gz
+          asset_path: ./${{ env.AC_DIR }}/${{ steps.new_filename.outputs.name }}
+          asset_name: ${{ steps.new_filename.outputs.name }}
           asset_content_type: application/gzip
 
       # 清理旧的 Release，仅保留最近 3 个
@@ -96,6 +135,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -e
           gh api repos/${{ github.repository }}/releases \
             | jq -r '.[].id' \
             | sort -rn \
