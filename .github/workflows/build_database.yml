@@ -32,7 +32,7 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y gh
-
+          
       # 拉取指定的 AzerothCore 仓库及分支
       - name: Clone AzerothCore
         run: |
@@ -42,46 +42,40 @@ jobs:
       - name: Start MySQL service
         run: sudo systemctl start mysql.service
 
-      # 修改 MySQL root 用户密码
-      - name: Change MySQL root password
-        run: |
-          mysql -u root -proot -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'ede8fb5a0c';"
-          mysql -u root -proot -e "FLUSH PRIVILEGES;"
-
       # 创建数据库
       - name: Create databases
         run: |
-          mysql -u root -pede8fb5a0c -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u root -pede8fb5a0c -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u root -pede8fb5a0c -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -u root -proot -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
       # 导入基础 SQL 文件
       - name: Import base SQL files
         run: |
           for file in azerothcore-wotlk/data/sql/base/db_auth/*.sql; do
-            mysql -u root -pede8fb5a0c auth < $file
+            mysql -u root -proot auth < $file
           done
           for file in azerothcore-wotlk/data/sql/base/db_characters/*.sql; do
-            mysql -u root -pede8fb5a0c characters < $file
+            mysql -u root -proot characters < $file
           done
           for file in azerothcore-wotlk/data/sql/base/db_world/*.sql; do
-            mysql -u root -pede8fb5a0c world < $file
+            mysql -u root -proot world < $file
           done
 
       # 导入更新 SQL 文件
       - name: Import update SQL files
         run: |
           for file in azerothcore-wotlk/data/sql/updates/db_world/*.sql; do
-            mysql -u root -pede8fb5a0c world < $file --force
+            mysql -u root -proot world < $file --force
           done
 
       # 导出数据库并打包
       - name: Export and compress databases
         run: |
           DATE=$(date +%Y%m%d)
-          mysqldump -u root -pede8fb5a0c auth > auth.sql
-          mysqldump -u root -pede8fb5a0c characters > characters.sql
-          mysqldump -u root -pede8fb5a0c world > world.sql
+          mysqldump -u root -proot auth > auth.sql
+          mysqldump -u root -proot characters > characters.sql
+          mysqldump -u root -proot world > world.sql
           tar -zcvf database-$DATE.sql.gz auth.sql characters.sql world.sql
 
       # 创建或更新 Release
