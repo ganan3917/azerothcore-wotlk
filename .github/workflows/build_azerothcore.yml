@@ -1,10 +1,8 @@
-name: Compile Playerbot
+name: Compile Playerbot Manually
 
 on:
-  workflow_dispatch: 
-  push:
-    branches:
-      - playerbot
+  # 支持手动触发工作流
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,26 +15,35 @@ jobs:
         with:
           ref: playerbot
 
-      # 安装依赖
+      # 安装 Git 2.48.1
+      - name: Install Git 2.48.1
+        run: |
+          choco install git --version=2.48.1 -y
+
+      # 安装 Boost 1.78
       - name: Install Boost 1.78
         run: |
           choco install boost-msvc-14.3 --version=1.78.0 -y
           echo "BOOST_ROOT=C:\local\boost_1_78_0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Install MySQL 8.4
+      # 安装 MySQL Server 8.4
+      - name: Install MySQL Server 8.4
         run: |
-          choco install mysql --version=8.0.28 -y
+          choco install mysql --version=8.0.34 -y  # Chocolatey 可能没有 8.4 版本，这里用相近的 8.0.34 示例
           echo "MYSQL_DIR=C:\Program Files\MySQL\MySQL Server 8.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      # 安装 OpenSSL 3.32
       - name: Install OpenSSL 3.32
         run: |
-          choco install openssl --version=3.0.8 -y
+          choco install openssl --version=3.0.8 -y  # Chocolatey 可能没有 3.32 版本，这里用 3.0.8 示例
           echo "OPENSSL_ROOT_DIR=C:\Program Files\OpenSSL-Win64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      # 安装 CMake 3.31.5
       - name: Install CMake 3.31.5
         run: |
           choco install cmake --version=3.31.5 -y --installargs 'ADD_CMAKE_TO_PATH=System'
 
+      # 安装 MS Visual Studio Community 2022
       - name: Install MS Visual Studio Community 2022
         run: |
           choco install visualstudio2022community -y --package-parameters "--add Microsoft.VisualStudio.Workload.NativeDesktop"
@@ -66,8 +73,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ format('v{0}', github.run_number) }}
-          release_name: Playerbot Build ${{ format('{0}', github.run_number) }}
+          tag_name: ${{ format('v{0}-{1:yyyyMMdd}', github.run_number, github.event.created_at) }}
+          release_name: Playerbot Build ${{ format('{0}-{1:yyyyMMdd}', github.run_number, github.event.created_at) }}
           body: |
             Playerbot build for ${{ github.sha }}
             Date: ${{ format('{0:yyyy-MM-dd}', github.event.created_at) }}
