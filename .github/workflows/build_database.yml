@@ -1,4 +1,4 @@
-name: Database Backup and Release
+name: build_database
 
 on:
   # 支持手动触发工作流
