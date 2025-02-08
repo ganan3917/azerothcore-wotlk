@@ -1,0 +1,42 @@
+name: build_mysql8_win
+
+on:
+  workflow_dispatch:
+    inputs:
+      mysql-root-password:
+        description: 'MySQL root password'
+        required: true
+        default: '123456'
+
+jobs:
+  install-mysql:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download MySQL Installer
+        shell: powershell
+        run: |
+          $mysqlInstallerUrl = "https://dev.mysql.com/get/Downloads/MySQLInstaller/mysql-installer-community-8.0.33.0.msi"
+          $mysqlInstallerPath = "$env:TEMP\mysql-installer.msi"
+          Invoke-WebRequest -Uri $mysqlInstallerUrl -OutFile $mysqlInstallerPath
+
+      - name: Install MySQL
+        shell: powershell
+        run: |
+          $arguments = "/i", "$env:TEMP\mysql-installer.msi", "/qn", "INSTALLDIR=C:\Program Files\MySQL\MySQL Server 8.0", "SERVICENAME=MySQL80", "ROOTPASSWORD=${{ github.event.inputs.mysql-root-password }}"
+          Start-Process -FilePath "msiexec.exe" -ArgumentList $arguments -Wait
+
+      - name: Start MySQL Service
+        shell: powershell
+        run: |
+          Start-Service -Name MySQL80
+
+      - name: Test MySQL Connection
+        shell: powershell
+        run: |
+          $mysqlPath = "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe"
+          $command = "$mysqlPath -u root -p${{ github.event.inputs.mysql-root-password }} -e 'SHOW DATABASES;'"
+          Invoke-Expression $command
