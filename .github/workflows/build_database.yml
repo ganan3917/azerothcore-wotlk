@@ -1,6 +1,7 @@
 name: build_database
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - playerbot  # 可根据需要修改分支名称
