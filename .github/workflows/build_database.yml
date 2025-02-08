@@ -13,15 +13,14 @@ on:
     - cron: '0 3 * * *'
 
 jobs:
-  setup-and-import:
+  setup-database:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout Repository
+        uses: actions/checkout@v3
         with:
-          repository: https://github.com/liyunfan1223/azerothcore-wotlk.git
-          path: azerothcore
-          ref: playerbots  # 替换为你想要的分支或版本
+          repository: liyunfan1223/azerothcore-wotlk  # 替换为实际的仓库用户名和仓库名
+          ref: playerbots  # 替换为实际的分支名
 
       - name: Install MySQL 8
         run: |
