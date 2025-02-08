@@ -25,14 +25,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
-      
       # 克隆 AzerothCore-WoTLK 仓库
       - name: Clone AzerothCore-WoTLK Repository
         run: |
           git clone ${{ github.event.inputs.repo_url }} -b ${{ github.event.inputs.branch }} azerothcore-wotlk
           cd azerothcore-wotlk
           git submodule update --init --recursive
-          
+      
       # 若提供了模块仓库地址，拉取模块到 modules 目录
       - name: Clone Module Repository 
         run: |
@@ -42,7 +41,7 @@ jobs:
           git clone https://github.com/azerothcore/mod-learn-spells.git modules/mod-learn-spells
           git clone https://github.com/azerothcore/mod-autobalance.git modules/mod-autobalance
           git clone https://github.com/azerothcore/mod-eluna.git modules/mod-eluna
-          
+      
       # 创建构建目录
       - name: Create Build Directory
         run: mkdir -p azerothcore-wotlk/build
@@ -77,7 +76,7 @@ jobs:
         with:
           tag_name: ${{ steps.date.outputs.date }}
           release_name: Release ${{ steps.date.outputs.date }}
-          body: 'AzerothCore-WoTLK Linux for ${{ steps.date.outputs.date }}'
+          body: 'Compiled AzerothCore-WoTLK files for ${{ steps.date.outputs.date }}'
           draft: false
           prerelease: false
 
