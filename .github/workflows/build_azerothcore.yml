@@ -13,11 +13,11 @@ on:
         required: true
         default: 'Playerbot'
       module_repo_url:
-        description: '模块仓库地址（可选）'
+        description: 'https://github.com/ganan3917/mod-playerbots.git'
         required: false
         default: ''
       module_branch:
-        description: '模块仓库分支（可选）'
+        description: 'master'
         required: false
         default: 'master'
   # 每天凌晨 5 点自动触发
