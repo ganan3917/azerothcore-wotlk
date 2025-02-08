@@ -18,5 +18,5 @@ jobs:
         run: |
           apt-get update
           apt-get install -y tree
-          tree 解压后的目录名
-          # 将“解压后的目录名”替换为实际解压后的目录名称，如果解压后直接是文件，可省略目录名
+          tree dbimport
+    
