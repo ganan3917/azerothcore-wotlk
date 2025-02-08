@@ -57,13 +57,14 @@ jobs:
       - name: Configure CMake
         run: |
           cd azerothcore-wotlk/build
-          cmake .. -DCMAKE_INSTALL_PREFIX=./install
+          cmake .. -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
 
       # 编译项目
       - name: Compile Project
         run: |
           cd azerothcore-wotlk/build
-          make -j$(nproc)
+          make -j 4
+          make install
 
       # 显示编译后文件存储的目录
       - name: Show Compiled Files Directory
