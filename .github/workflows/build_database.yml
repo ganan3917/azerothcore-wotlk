@@ -32,10 +32,10 @@ jobs:
           sudo apt - get install - y mysql - server
           sudo systemctl start mysql
           sudo mysql - e "ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY '123456';"
-          sudo mysql - e "CREATE DATABASE auth;"
-          sudo mysql - e "CREATE DATABASE world;"
-          sudo mysql - e "CREATE DATABASE characters;"
-          sudo mysql - e "CREATE DATABASE playerbots;"
+          sudo mysql - e "CREATE DATABASE `auth` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;;"
+          sudo mysql - e "CREATE DATABASE `world` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;;"
+          sudo mysql - e "CREATE DATABASE `characters` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
+          sudo mysql - e "CREATE DATABASE `playerbots` DEFAULT CHARACTER SET UTF8MB4 COLLATE utf8mb4_unicode_ci;"
 
       - name: Import base SQL files
         run: |
@@ -60,7 +60,7 @@ jobs:
 
       - name: Export databases
         run: |
-          CURRENT_TIME=$(date +%Y%m%d%H%M%S)
+          CURRENT_TIME=$(date +%Y%m%d)
           mysqldump -uroot -p123456 auth > auth_$CURRENT_TIME.sql
           mysqldump -uroot -p123456 world > world_$CURRENT_TIME.sql
           mysqldump -uroot -p123456 characters > characters_$CURRENT_TIME.sql
