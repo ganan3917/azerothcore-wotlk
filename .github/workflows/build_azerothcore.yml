@@ -1,4 +1,4 @@
-name: AzerothCore-WoTLK Compile
+name: build_azerothcore
 
 on:
   # 手动触发，可输入仓库地址、分支和模块仓库信息
