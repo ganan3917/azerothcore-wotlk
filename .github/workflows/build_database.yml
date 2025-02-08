@@ -1,8 +1,16 @@
-name: AzerothCore Database Operations
+name: build_database
+
 on:
-  push:
-    branches:
-      - playerbots  # 替换为你要触发工作流程的分支
+  # 支持手动触发工作流，并允许指定拉取的分支
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: playerbots
+  # 支持按计划自动触发工作流，每天凌晨 3 点（UTC 时间）执行
+  schedule:
+    - cron: '0 3 * * *'
 
 jobs:
   setup-and-import:
