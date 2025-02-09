@@ -75,6 +75,12 @@ jobs:
           make -j 4
           make install
 
+      # 显示目录结构
+      - name: Display Directory Structure
+        run: |
+          echo "Directory structure of ${{ env.AC_DIR }}:"
+          tree -L 3 ${{ env.AC_DIR }}
+         
       # 获取当前日期
       - name: Get Current Date
         id: date
@@ -85,11 +91,11 @@ jobs:
         run: |
           set -e
           cd ${{ env.AC_DIR }}/build/install
-          tar -czvf ../../azerothcore_${{ steps.date.outputs.date }}.tar.gz .
-
+          tar -czvf /azerothcore_${{ steps.date.outputs.date }}.tar.gz .
+           
       # 上传编译好的文件作为 artifact
       - name: Upload Compiled Files as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: azerothcore_${{ steps.date.outputs.date }}
-          path: ${{ env.AC_DIR }}/build/install/azerothcore_${{ steps.date.outputs.date }}.tar.gz
+          path: /azerothcore_${{ steps.date.outputs.date }}.tar.gz
