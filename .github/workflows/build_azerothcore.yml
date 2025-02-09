@@ -32,7 +32,7 @@ jobs:
         run: |
           set -e
           sudo apt-get update
-          sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
+          sudo apt-get install -y git tree cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev 
 
       # 克隆仓库
       - name: Clone Repository
