@@ -14,12 +14,13 @@ on:
         default: 'Playerbot'
   # 支持自动触发，这里设置为每周六凌晨 2 点触发
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 3 * * *'
 
 jobs:
   build:
     runs-on: ubuntu-22.04
     env:
+      TZ: Asia/Shanghai
       DB_USER: root
       DB_PASSWORD: root
       REPO_URL: ${{ github.event.inputs.repo || 'https://github.com/azerothcore/azerothcore-wotlk.git' }}
