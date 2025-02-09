@@ -16,9 +16,8 @@ jobs:
       # 检出代码
       - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          repository: https://github.com/azerothcore/azerothcore-wotlk.git
-          ref: master
+         run:|
+           git clone -b master https://github.com/azerothcore/azerothcore-wotlk.git
 
       # 安装 Visual Studio 2022
       - name: Install Visual Studio 2022
