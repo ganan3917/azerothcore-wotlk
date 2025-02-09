@@ -65,7 +65,7 @@ jobs:
 
       # 上传编译结果
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: azetothcore-wotlk-compiled
           path: build/Release
