@@ -1,0 +1,76 @@
+name: Compile AzerothCore WotLK
+
+on:
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: 'Repository to clone (e.g., azerothcore/azerothcore-wotlk)'
+        required: true
+        default: 'azerothcore/azerothcore-wotlk'
+      branch:
+        description: 'Branch to clone (e.g., master)'
+        required: true
+        default: 'master'
+  # 自动触发，北京时间凌晨 5 点（UTC 时间前一天的 21:00）
+  schedule:
+    - cron: '0 21 * * *'
+
+jobs:
+  compile:
+    runs-on: windows-2022
+
+    steps:
+      - name: Compile AzerothCore WotLK
+        shell: pwsh
+        run: |
+          # 设置拉取的仓库和分支
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            $env:REPO = "${{ github.event.inputs.repository }}"
+            $env:BRANCH = "${{ github.event.inputs.branch }}"
+          } else {
+            $env:REPO = "azerothcore/azerothcore-wotlk"
+            $env:BRANCH = "master"
+          }
+          $env:CLONE_DIR = "$env:GITHUB_WORKSPACE/azerothcore-wotlk"
+          Write-Output "REPO=$env:REPO" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Output "BRANCH=$env:BRANCH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Output "CLONE_DIR=$env:CLONE_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Clone repository
+        run: |
+          git clone --depth 1 --branch ${{ env.BRANCH }} https://github.com/${{ env.REPO }} ${{ env.CLONE_DIR }}
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          # 安装 Visual Studio Build Tools
+          choco install visualstudio2022-workload-vctools -y
+          # 安装 CMake
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+          # 安装 Python
+          choco install python -y
+          # 安装 MySQL
+          choco install mysql -y
+
+      - name: Configure CMake
+        run: |
+          mkdir ${{ env.CLONE_DIR }}\build
+          cd ${{ env.CLONE_DIR }}\build
+          cmake -DCMAKE_INSTALL_PREFIX=install -A x64 ..
+
+      - name: Build project
+        run: |
+          cd ${{ env.CLONE_DIR }}\build
+          cmake --build . --config Release --target install
+
+      - name: Package build output
+        run: |
+          cd ${{ env.CLONE_DIR }}\build\install
+          Compress-Archive -Path .\* -DestinationPath ${{ github.workspace }}\azerothcore-wotlk-build.zip
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: azerothcore-wotlk-build
+          path: ${{ github.workspace }}\azerothcore-wotlk-build.zip
