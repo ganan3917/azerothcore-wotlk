@@ -1,4 +1,4 @@
-name: Compile AzerothCore WotLK
+name: build_win
 
 on:
   # 手动触发
@@ -21,7 +21,7 @@ jobs:
     runs-on: windows-2022
 
     steps:
-      - name: Compile AzerothCore WotLK
+      - name: Compile AzerothCore WotLK Windowns
         shell: pwsh
         run: |
           # 设置拉取的仓库和分支
