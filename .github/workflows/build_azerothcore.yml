@@ -16,7 +16,7 @@ on:
         description: '模块仓库地址，多个地址用空格分隔'
         required: false
         default: 'https://github.com/ganan3917/mod-playerbots.git https://github.com/azerothcore/mod-learn-spells.git https://github.com/azerothcore/mod-autobalance.git https://github.com/azerothcore/mod-eluna.git'
-  # 每天凌晨 5 点自动触发
+  # 每天凌晨 3 点自动触发
   schedule:
     - cron: '0 3 * * *'
 
@@ -27,6 +27,19 @@ jobs:
       TZ: Asia/Shanghai
       AC_DIR: azerothcore-wotlk
     steps:
+      
+      # 缓存依赖项和编译产物
+      - name: Cache dependencies and build artifacts
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.AC_DIR }}
+            /usr/local/include
+            /usr/local/lib
+          key: ${{ runner.os }}-build-${{ steps.date.outputs.date }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+      
       # 安装编译所需的依赖组件
       - name: Install Dependencies
         run: |
