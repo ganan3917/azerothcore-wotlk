@@ -95,4 +95,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: azerothcore_${{ steps.date.outputs.date }}
-          path: ${{ env.AC_DIR }}/build/azerothcore_${{ steps.date.outputs.date }}.tar.gz
+          path: ${{ env.AC_DIR }}/build/install/azerothcore_${{ steps.date.outputs.date }}.tar.gz
