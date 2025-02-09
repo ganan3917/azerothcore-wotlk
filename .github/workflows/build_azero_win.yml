@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       repository:
-        description: 'Repository to clone (e.g., azerothcore/azerothcore-wotlk)'
+        description: 'Repository to clone (azerothcore/azerothcore-wotlk)'
         required: true
-        default: 'azerothcore/azerothcore-wotlk'
+        default: 'https://github.com/azerothcore/azerothcore-wotlk.git'
       branch:
-        description: 'Branch to clone (e.g., master)'
+        description: 'Branch to clone (master)'
         required: true
         default: 'master'
   # 自动触发，北京时间凌晨 5 点（UTC 时间前一天的 21:00）
@@ -21,7 +21,7 @@ jobs:
     runs-on: windows-2022
 
     steps:
-      - name: Compile AzerothCore WotLK Windowns
+      - name: Azeroth_CoreWotLK_Windowns
         shell: pwsh
         run: |
           # 设置拉取的仓库和分支
@@ -70,7 +70,7 @@ jobs:
           Compress-Archive -Path .\* -DestinationPath ${{ github.workspace }}\azerothcore-wotlk-build.zip
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: azerothcore-wotlk-build
           path: ${{ github.workspace }}\azerothcore-wotlk-build.zip
