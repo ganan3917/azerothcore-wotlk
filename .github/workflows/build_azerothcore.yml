@@ -5,15 +5,15 @@ on:
   workflow_dispatch:
     inputs:
       repo_url:
-        description: 'AzerothCore-WoTLK 仓库地址'
+        description: '仓库地址'
         required: true
         default: 'https://github.com/ganan3917/azerothcore-wotlk.git'
       branch:
-        description: '要编译的分支'
+        description: '选择分支'
         required: true
         default: 'Playerbot'
       module_repos:
-        description: '模块仓库地址，多个地址用空格分隔'
+        description: '模块仓库地址(多个用空格分隔)'
         required: false
         default: 'https://github.com/ganan3917/mod-playerbots.git https://github.com/azerothcore/mod-learn-spells.git https://github.com/azerothcore/mod-autobalance.git https://github.com/azerothcore/mod-eluna.git'
   # 每天凌晨 3 点自动触发
