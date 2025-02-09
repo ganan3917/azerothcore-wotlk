@@ -18,12 +18,13 @@ on:
         default: 'https://github.com/ganan3917/mod-playerbots.git https://github.com/azerothcore/mod-learn-spells.git https://github.com/azerothcore/mod-autobalance.git https://github.com/azerothcore/mod-eluna.git'
   # 每天凌晨 5 点自动触发
   schedule:
-    - cron: '0 5 * * *'
+    - cron: '0 3 * * *'
 
 jobs:
   build-and-package:
     runs-on: ubuntu-22.04
     env:
+      TZ: Asia/Shanghai
       AC_DIR: azerothcore-wotlk
     steps:
       # 安装编译所需的依赖组件
