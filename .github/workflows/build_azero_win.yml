@@ -26,7 +26,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          repository: ${{ github.event.inputs.repository_url || 'azerothcore/azerothcore-wotlk' }}
+          repository: ${{ 
+            contains(github.event.inputs.repository_url, 'github.com') && 
+            replace(split(github.event.inputs.repository_url, 'github.com/')[1], '.git', '') || 
+            'azerothcore/azerothcore-wotlk' 
+          }}
           ref: ${{ github.event.inputs.branch || 'master' }}
 
       # 安装 Visual Studio 2022
