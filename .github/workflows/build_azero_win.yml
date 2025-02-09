@@ -1,76 +1,71 @@
-name: build_win
+name: Compile azetothcore-wotlk
 
+# 触发条件，支持手动触发和定期自动触发
 on:
   # 手动触发
   workflow_dispatch:
-    inputs:
-      repository:
-        description: 'Repository to clone (azerothcore/azerothcore-wotlk)'
-        required: true
-        default: 'https://github.com/azerothcore/azerothcore-wotlk.git'
-      branch:
-        description: 'Branch to clone (master)'
-        required: true
-        default: 'master'
-  # 自动触发，北京时间凌晨 5 点（UTC 时间前一天的 21:00）
+  # 每天凌晨 2 点自动触发
   schedule:
-    - cron: '0 21 * * *'
+    - cron: '0 2 * * *'
 
 jobs:
   compile:
     runs-on: windows-2022
 
     steps:
-      - name: Azeroth_CoreWotLK_Windowns
-        shell: pwsh
-        run: |
-          # 设置拉取的仓库和分支
-          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
-            $env:REPO = "${{ github.event.inputs.repository }}"
-            $env:BRANCH = "${{ github.event.inputs.branch }}"
-          } else {
-            $env:REPO = "azerothcore/azerothcore-wotlk"
-            $env:BRANCH = "master"
-          }
-          $env:CLONE_DIR = "$env:GITHUB_WORKSPACE/azerothcore-wotlk"
-          Write-Output "REPO=$env:REPO" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Output "BRANCH=$env:BRANCH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Output "CLONE_DIR=$env:CLONE_DIR" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Clone repository
-        run: |
-          git clone --depth 1 --branch ${{ env.BRANCH }} ${{ env.REPO }} ${{ env.CLONE_DIR }}
-
-      - name: Install dependencies
-        shell: pwsh
-        run: |
-          # 安装 Visual Studio Build Tools
-          choco install visualstudio2022-workload-vctools -y
-          # 安装 CMake
-          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
-          # 安装 Python
-          choco install python -y
-          # 安装 MySQL
-          choco install mysql -y
-
-      - name: Configure CMake
-        run: |
-          mkdir ${{ env.CLONE_DIR }}\build
-          cd ${{ env.CLONE_DIR }}\build
-          cmake -DCMAKE_INSTALL_PREFIX=install -A x64 ..
-
-      - name: Build project
-        run: |
-          cd ${{ env.CLONE_DIR }}\build
-          cmake --build . --config Release --target install
-
-      - name: Package build output
-        run: |
-          cd ${{ env.CLONE_DIR }}\build\install
-          Compress-Archive -Path .\* -DestinationPath ${{ github.workspace }}\azerothcore-wotlk-build.zip
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      # 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          name: azerothcore-wotlk-build
-          path: ${{ github.workspace }}\azerothcore-wotlk-build.zip
+          repository: https://github.com/azerothcore/azerothcore-wotlk.git
+          ref: master
+
+      # 安装 Visual Studio 2022
+      - name: Install Visual Studio 2022
+        uses: microsoft/setup-msbuild@v1.1
+        with:
+          vs-version: '17.0'
+
+      # 安装 CMake 3.3
+      - name: Install CMake 3.3
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: '3.3'
+
+      # 安装 Boost 1.8
+      - name: Install Boost 1.8
+        run: |
+          choco install boost-msvc-14.3 -y --version=1.80.0
+          echo "BOOST_ROOT=C:\local\boost_1_80_0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # 安装 MySQL 8.0
+      - name: Install MySQL 8.0
+        run: |
+          choco install mysql -y --version=8.0.26
+          echo "MYSQL_DIR=C:\Program Files\MySQL\MySQL Server 8.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # 安装 OpenSSL 3.2
+      - name: Install OpenSSL 3.2
+        run: |
+          choco install openssl -y --version=3.2.0
+          echo "OPENSSL_ROOT_DIR=C:\Program Files\OpenSSL-Win64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # 配置项目
+      - name: Configure project
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 17 2022" -A x64
+
+      # 编译项目
+      - name: Compile project
+        run: |
+          cd build
+          msbuild azetothcore.sln /p:Configuration=Release /p:Platform=x64
+
+      # 上传编译结果
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: azetothcore-wotlk-compiled
+          path: build/Release
