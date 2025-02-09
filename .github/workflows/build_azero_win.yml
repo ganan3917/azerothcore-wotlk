@@ -1,16 +1,16 @@
-name: build_azero_win
+name: Compile azetothcore-wotlk
 
 # 触发条件，支持手动触发和定期自动触发
 on:
   # 手动触发
   workflow_dispatch:
     inputs:
-      repository_url:
-        description: 'Repository URL to checkout'
+      repository:
+        description: 'Repository to clone (format: owner/repo)'
         required: false
         default: 'https://github.com/azerothcore/azerothcore-wotlk.git'
       branch:
-        description: 'Branch to checkout'
+        description: 'Branch to clone'
         required: false
         default: 'master'
   # 每天凌晨 2 点自动触发
@@ -18,7 +18,7 @@ on:
     - cron: '0 2 * * *'
 
 jobs:
-  build_azero_win:
+  compile_win:
     runs-on: windows-2022
 
     steps:
@@ -26,12 +26,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          repository: ${{ 
-            contains(github.event.inputs.repository_url, 'github.com') && 
-            replace(split(github.event.inputs.repository_url, 'github.com/')[1], '.git', '') || 
-            'azerothcore/azerothcore-wotlk' 
-          }}
-          ref: ${{ github.event.inputs.branch || 'master' }}
+          repository: ${{ github.event.inputs.repository || 'your-default-owner/your-default-repo' }}
+          ref: ${{ github.event.inputs.branch || 'main' }}
 
       # 安装 Visual Studio 2022
       - name: Install Visual Studio 2022
@@ -39,11 +35,11 @@ jobs:
         with:
           vs-version: '17.0'
 
-      # 安装 CMake 3.20
-      - name: Install CMake 3.20
+      # 安装 CMake 3.3
+      - name: Install CMake 3.3
         uses: lukka/get-cmake@latest
         with:
-          cmakeVersion: '3.20'
+          cmakeVersion: '3.3'
 
       # 安装 Boost 1.8
       - name: Install Boost 1.8
@@ -74,11 +70,11 @@ jobs:
       - name: Compile project
         run: |
           cd build
-          msbuild azerothcore.sln /p:Configuration=Release /p:Platform=x64
+          msbuild azetothcore.sln /p:Configuration=Release /p:Platform=x64
 
       # 上传编译结果
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: azerothcore-wotlk-compiled
+          name: azetothcore-wotlk-compiled
           path: build/Release
