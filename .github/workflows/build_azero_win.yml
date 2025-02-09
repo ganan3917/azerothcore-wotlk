@@ -39,7 +39,7 @@ jobs:
 
       - name: Clone repository
         run: |
-          git clone --depth 1 --branch ${{ env.BRANCH }} https://github.com/${{ env.REPO }} ${{ env.CLONE_DIR }}
+          git clone --depth 1 --branch ${{ env.BRANCH }} ${{ env.REPO }} ${{ env.CLONE_DIR }}
 
       - name: Install dependencies
         shell: pwsh
