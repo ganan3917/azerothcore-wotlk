@@ -1,4 +1,4 @@
-name: Compile azetothcore-wotlk
+name: build_azero_win
 
 # 触发条件，支持手动触发和定期自动触发
 on:
@@ -9,7 +9,7 @@ on:
     - cron: '0 2 * * *'
 
 jobs:
-  compile:
+  build_azero_win:
     runs-on: windows-2022
 
     steps:
