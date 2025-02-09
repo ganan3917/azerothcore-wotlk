@@ -80,7 +80,7 @@ jobs:
         run: |
           set -e
           cd ${{ env.AC_DIR }}/build/install
-          tar -czvf /azerothcore.tar.gz .
+          sudo tar -czvf /azerothcore.tar.gz .
 
       # 上传编译好的文件作为 artifact
       - name: Upload Compiled Files as Artifact
