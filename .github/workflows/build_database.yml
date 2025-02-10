@@ -3,28 +3,21 @@ name: build_database
 on:
   # 支持手动触发
   workflow_dispatch:
-    inputs:
-      repo:
-        description: 'AzerothCore 仓库地址'
-        required: true
-        default: 'https://github.com/ganan3917/azerothcore-wotlk.git'
-      branch:
-        description: '要拉取的分支'
-        required: true
-        default: 'Playerbot'
-  # 支持自动触发，这里设置为每周六凌晨 2 点触发
+  # 支持自动触发，这里设置为每周六凌晨 3 点触发
   schedule:
-    - cron: '0 3 * * *'
+      - cron: '0 19 * * *'
 
 jobs:
-  build:
+  build_database:
     runs-on: ubuntu-22.04
     env:
       TZ: Asia/Shanghai
+      # 设置仓库
+      azerothcore_url: https://github.com/ganan3917/azerothcore-wotlk.git
+      # 设置分支
+      azerothcore_branch: Playerbot
       DB_USER: root
       DB_PASSWORD: root
-      REPO_URL: ${{ github.event.inputs.repo || 'https://github.com/azerothcore/azerothcore-wotlk.git' }}
-      BRANCH_NAME: ${{ github.event.inputs.branch || 'master' }}
     steps:
       # 检出代码
       - name: Checkout
@@ -39,11 +32,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      # 拉取指定的 AzerothCore 仓库及分支
+      # 拉取AzerothCore仓库及分支
       - name: Clone AzerothCore
         run: |
           set -e
-          git clone $REPO_URL -b $BRANCH_NAME azerothcore-wotlk
+          git clone {{ $env.azerothcore_url }} -b {{ $env.azerothcore_branch }} azerothcore-wotlk
 
       # 启动 MySQL 服务
       - name: Start MySQL service
@@ -83,7 +76,7 @@ jobs:
           mysqldump -u $DB_USER -p$DB_PASSWORD auth > auth.sql
           mysqldump -u $DB_USER -p$DB_PASSWORD characters > characters.sql
           mysqldump -u $DB_USER -p$DB_PASSWORD world > world.sql
-          tar -zcvf database-${{ steps.date.outputs.date }}.sql.gz auth.sql characters.sql world.sql
+          sudo tar -zcvf database-${{ steps.date.outputs.date }}.sql.gz auth.sql characters.sql world.sql
 
       # 上传打包好的数据库文件作为工作流的制品
       - name: Upload database artifact
