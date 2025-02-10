@@ -23,20 +23,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 安装编译所需的依赖组件
-      - name: Install Dependencies
-        run: |
-          set -e
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt-get update
-          sudo apt-get install -y gh
-
       # 拉取AzerothCore仓库及分支
       - name: Clone AzerothCore
         run: |
           set -e
-          git clone {{ $env.azerothcore_url }} -b {{ $env.azerothcore_branch }} azerothcore-wotlk
+          git clone -b ${{env.azerothcore_branch}} ${{env.azerothcore_url}}  azerothcore-wotlk
 
       # 启动 MySQL 服务
       - name: Start MySQL service
