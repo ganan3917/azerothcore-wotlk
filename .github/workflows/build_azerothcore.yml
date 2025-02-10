@@ -27,8 +27,8 @@ jobs:
       - name: Clone Repository
         run: |
           set -e
-          echo "Cloning repository ${{ azerothcore_url }} on branch ${{ azerothcore_branch }}"
-          git clone ${{ azerothcore_url }} -b ${{ azerothcore_branch }} ${{ env.AC_DIR }}
+          echo "Cloning repository ${{ env.azerothcore_url }} on branch ${{ env.azerothcore_branch }}"
+          git clone ${{ env.azerothcore_url }} -b ${{ env.azerothcore_branch }} ${{ env.AC_DIR }}
           cd ${{ env.AC_DIR }}
           echo "Updating submodules"
           git submodule update --init --recursive
