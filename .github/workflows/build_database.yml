@@ -60,14 +60,23 @@ jobs:
         id: date
         run: echo "::set-output name=date::$(date +%Y%m%d)"
 
-      # 导出数据库并打包，文件名包含日期
-      - name: Export and compress databases
+      # 创建导出目录
+      - name: Create export directory
+        run: mkdir -p database_export
+
+      # 导出数据库到指定目录
+      - name: Export databases to directory
         run: |
           set -e
-          mysqldump -u $DB_USER -p$DB_PASSWORD auth > auth.sql
-          mysqldump -u $DB_USER -p$DB_PASSWORD characters > characters.sql
-          mysqldump -u $DB_USER -p$DB_PASSWORD world > world.sql
-          sudo tar -zcvf database-${{ steps.date.outputs.date }}.sql.gz auth.sql characters.sql world.sql
+          mysqldump -u $DB_USER -p$DB_PASSWORD auth > database_export/auth.sql
+          mysqldump -u $DB_USER -p$DB_PASSWORD characters > database_export/characters.sql
+          mysqldump -u $DB_USER -p$DB_PASSWORD world > database_export/world.sql
+
+      # 打包导出目录
+      - name: Compress export directory
+        run: |
+          set -e
+          sudo tar -zcvf database-${{ steps.date.outputs.date }}.sql.gz database_export
 
       # 上传打包好的数据库文件作为工作流的制品
       - name: Upload database artifact
