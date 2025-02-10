@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   # 每天凌晨 3 点自动触发
   schedule:
-    - cron: '0 22 * * *'
+    - cron: '0 19 * * *'
 
 jobs:
   build-azerothcore-linux:
