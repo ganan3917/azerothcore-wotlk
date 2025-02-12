@@ -22,7 +22,7 @@ jobs:
         run: |
           set -e
           git clone -b Playerbot https://github.com/ganan3917/azerothcore-wotlk.git azerothcore-wotlk
-          git clone https://github.com/liyunfan1223/mod-playerbots.git azerothcore-wotlk/modules
+          git clone -b master https://github.com/ganan3917/mod-playerbots azerothcore-wotlk/modules
           
       # 获取当前日期
       - name: Get current date
@@ -44,7 +44,8 @@ jobs:
         run: |
           set -e
           sudo tar -zcvf data-${{ steps.date.outputs.date }}.tar.gz azerothcore-wotlk/data
-
+          sudo tar -zcvf data-${{ steps.date.outputs.date }}.tar.gz azerothcore-wotlk/modules/mod-playerbots/data
+          
       # 上传打包好的 data 文件作为工作流的制品
       - name: Upload data artifact
         uses: actions/upload-artifact@v4
