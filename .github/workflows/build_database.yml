@@ -24,7 +24,7 @@ jobs:
           git clone -b Playerbot https://github.com/ganan3917/azerothcore-wotlk.git azerothcore-wotlk
       
         # 拉取mod-playerbots
-      - name: Clone AzerothCore
+      - name: Clone mod-playerbots
         run: |
           set -e
           cd azerothcore-wotlk
@@ -35,22 +35,12 @@ jobs:
         id: date
         run: echo "::set-output name=date::$(date +%Y%m%d)"
 
-      # 检查 data 目录是否存在
-      - name: Check data directory existence
-        run: |
-          if [ -d "azerothcore-wotlk/data" ]; then
-            echo "Data directory exists."
-          else
-            echo "Data directory does not exist."
-            exit 1
-          fi
-
       # 打包 data 目录
       - name: Compress data directory
         run: |
           set -e
           sudo tar -zcvf data-${{ steps.date.outputs.date }}.tar.gz azerothcore-wotlk/data
-          sudo tar -zcvf data-${{ steps.date.outputs.date }}.tar.gz azerothcore-wotlk/modules/mod-playerbots/data
+          sudo tar -zcvf playerbots-${{ steps.date.outputs.date }}.tar.gz azerothcore-wotlk/modules/mod-playerbots/data
           
       # 上传打包好的 data 文件作为工作流的制品
       - name: Upload data artifact
@@ -58,3 +48,10 @@ jobs:
         with:
           name: data-backup-${{ steps.date.outputs.date }}
           path: data-${{ steps.date.outputs.date }}.tar.gz
+
+  # 上传打包好的 data 文件作为工作流的制品
+      - name: Upload data artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: playerbots-backup-${{ steps.date.outputs.date }}
+          path: playerbots-${{ steps.date.outputs.date }}.tar.gz
