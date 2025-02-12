@@ -22,6 +22,11 @@ jobs:
         run: |
           set -e
           git clone -b Playerbot https://github.com/ganan3917/azerothcore-wotlk.git azerothcore-wotlk
+      
+        # 拉取mod-playerbots
+      - name: Clone AzerothCore
+        run: |
+          set -e
           cd azerothcore-wotlk
           git clone -b master https://github.com/ganan3917/mod-playerbots modules/mod-playerbots
           
