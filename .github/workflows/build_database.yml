@@ -12,10 +12,6 @@ jobs:
     runs-on: ubuntu-22.04
     env:
       TZ: Asia/Shanghai
-      # 设置仓库
-      azerothcore_url: https://github.com/ganan3917/azerothcore-wotlk.git
-      # 设置分支
-      azerothcore_branch: Playerbot
     steps:
       # 检出代码
       - name: Checkout
@@ -25,8 +21,9 @@ jobs:
       - name: Clone AzerothCore
         run: |
           set -e
-          git clone -b ${{ env.azerothcore_branch }} ${{ env.azerothcore_url }} azerothcore-wotlk
-
+          git clone -b Playerbot https://github.com/ganan3917/azerothcore-wotlk.git azerothcore-wotlk
+          git clone https://github.com/liyunfan1223/mod-playerbots.git azerothcore-wotlk/modules
+          
       # 获取当前日期
       - name: Get current date
         id: date
