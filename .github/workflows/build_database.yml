@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   # 支持自动触发，这里设置为每周六凌晨 3 点触发
   schedule:
-      - cron: '0 19 * * *'
+    - cron: '0 19 * * *'
 
 jobs:
   build_database:
@@ -16,71 +16,41 @@ jobs:
       azerothcore_url: https://github.com/ganan3917/azerothcore-wotlk.git
       # 设置分支
       azerothcore_branch: Playerbot
-      DB_USER: root
-      DB_PASSWORD: root
     steps:
       # 检出代码
       - name: Checkout
         uses: actions/checkout@v3
 
-      # 拉取AzerothCore仓库及分支
+      # 拉取 AzerothCore 仓库及分支
       - name: Clone AzerothCore
         run: |
           set -e
-          git clone -b ${{env.azerothcore_branch}} ${{env.azerothcore_url}}  azerothcore-wotlk
-
-      # 启动 MySQL 服务
-      - name: Start MySQL service
-        run: sudo systemctl start mysql.service
-
-      # 创建数据库
-      - name: Create databases
-        run: |
-          set -e
-          mysql -u $DB_USER -p$DB_PASSWORD -e "CREATE DATABASE IF NOT EXISTS auth CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u $DB_USER -p$DB_PASSWORD -e "CREATE DATABASE IF NOT EXISTS characters CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -u $DB_USER -p$DB_PASSWORD -e "CREATE DATABASE IF NOT EXISTS world CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-      # 导入基础 SQL 文件
-      - name: Import base SQL files
-        run: |
-          set -e
-          for file in azerothcore-wotlk/data/sql/base/db_auth/*.sql; do
-            mysql -u $DB_USER -p$DB_PASSWORD auth < $file
-          done
-          for file in azerothcore-wotlk/data/sql/base/db_characters/*.sql; do
-            mysql -u $DB_USER -p$DB_PASSWORD characters < $file
-          done
-          for file in azerothcore-wotlk/data/sql/base/db_world/*.sql; do
-            mysql -u $DB_USER -p$DB_PASSWORD world < $file
-          done
+          git clone -b ${{ env.azerothcore_branch }} ${{ env.azerothcore_url }} azerothcore-wotlk
 
       # 获取当前日期
       - name: Get current date
         id: date
         run: echo "::set-output name=date::$(date +%Y%m%d)"
 
-      # 创建导出目录
-      - name: Create export directory
-        run: mkdir -p database_export
+      # 检查 data 目录是否存在
+      - name: Check data directory existence
+        run: |
+          if [ -d "azerothcore-wotlk/data" ]; then
+            echo "Data directory exists."
+          else
+            echo "Data directory does not exist."
+            exit 1
+          fi
 
-      # 导出数据库到指定目录
-      - name: Export databases to directory
+      # 打包 data 目录
+      - name: Compress data directory
         run: |
           set -e
-          mysqldump -u $DB_USER -p$DB_PASSWORD auth > database_export/auth.sql
-          mysqldump -u $DB_USER -p$DB_PASSWORD characters > database_export/characters.sql
-          mysqldump -u $DB_USER -p$DB_PASSWORD world > database_export/world.sql
+          sudo tar -zcvf data-${{ steps.date.outputs.date }}.tar.gz azerothcore-wotlk/data
 
-      # 打包导出目录
-      - name: Compress export directory
-        run: |
-          set -e
-          sudo tar -zcvf database-${{ steps.date.outputs.date }}.sql.gz database_export
-
-      # 上传打包好的数据库文件作为工作流的制品
-      - name: Upload database artifact
+      # 上传打包好的 data 文件作为工作流的制品
+      - name: Upload data artifact
         uses: actions/upload-artifact@v4
         with:
-          name: database-backup-${{ steps.date.outputs.date }}
-          path: database-${{ steps.date.outputs.date }}.sql.gz
+          name: data-backup-${{ steps.date.outputs.date }}
+          path: data-${{ steps.date.outputs.date }}.tar.gz
