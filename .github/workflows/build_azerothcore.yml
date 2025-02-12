@@ -25,7 +25,7 @@ jobs:
           set -e
           sudo apt-get update
           sudo apt-get install -y git cmake make gcc g++ clang libmysqlclient-dev libssl-dev libbz2-dev libreadline-dev libncurses-dev mysql-server libboost-all-dev
-
+      
       # 克隆仓库
       - name: Clone Repository
         run: |
@@ -67,17 +67,22 @@ jobs:
           cd ${{ env.AC_DIR }}/build
           make -j 4
           make install
-
+          
+      # 获取当前日期
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +%Y%m%d)"
+        
       # 打包编译后的文件，修改文件名
       - name: Package Compiled Files
         run: |
           set -e
           cd ${{ env.AC_DIR }}/build/install
-          sudo tar -czvf /azerothcore.tar.gz .
+          sudo tar -czvf /azerothcore-${{ steps.date.outputs.date }}.tar.gz .
 
       # 上传编译好的文件作为 artifact
       - name: Upload Compiled Files as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: azerothcore
-          path: /azerothcore.tar.gz
+          name: azerothcore-${{ steps.date.outputs.date }}
+          path: /azerothcore-${{ steps.date.outputs.date }}.tar.gz
