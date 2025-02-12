@@ -22,7 +22,8 @@ jobs:
         run: |
           set -e
           git clone -b Playerbot https://github.com/ganan3917/azerothcore-wotlk.git azerothcore-wotlk
-          git clone -b master https://github.com/ganan3917/mod-playerbots azerothcore-wotlk/modules
+          cd azerothcore-wotlk
+          git clone -b master https://github.com/ganan3917/mod-playerbots modules/mod-playerbots
           
       # 获取当前日期
       - name: Get current date
