@@ -58,7 +58,7 @@ jobs:
         run: |
           set -e
           cd ${{ env.AC_DIR }}/build
-          cmake .. -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
+          cmake .. -DCMAKE_INSTALL_PREFIX=/install -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DWITH_WARNINGS=1 -DTOOLS_BUILD=all -DSCRIPTS=static -DMODULES=static
 
       # 编译项目
       - name: Compile Project
