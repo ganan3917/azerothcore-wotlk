@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-azerothcore-linux:
+  build-azerothcore:
     runs-on: ubuntu-22.04
     env:
       TZ: Asia/Shanghai
