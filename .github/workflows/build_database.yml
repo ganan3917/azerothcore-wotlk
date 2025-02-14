@@ -3,9 +3,6 @@ name: build_database
 on:
   # 支持手动触发
   workflow_dispatch:
-  # 支持自动触发，这里设置为每周六凌晨 3 点触发
-  schedule:
-    - cron: '0 19 * * *'
 
 jobs:
   build_database:
